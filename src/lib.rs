@@ -63,5 +63,5 @@ pub struct Transition<T> {
 }
 
 pub enum Trigger<T> {
-    Condition(Box<dyn Fn(&T) -> bool>),
+    Condition(Box<fn(&Rc<T>) -> bool>),
 }
