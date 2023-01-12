@@ -16,9 +16,12 @@ impl<T> StateMachine<T> {
     ) -> Self {
         Self {
             current_state: CurrentState {
+                state: match states.get(&starting_state) {
+                    Some(state) => state.clone(),
+                    None => panic!("invalid starting state"),
+                },
                 name: starting_state,
                 elapsed: 0.0,
-                duration: 0.0,
             },
             states,
             transitions,
@@ -28,34 +31,63 @@ impl<T> StateMachine<T> {
 
     pub fn update_parameters(&mut self, update: Box<dyn Fn(Rc<T>) -> Rc<T>>) {
         self.parameters = update(self.parameters.clone());
+
+        let start_state = TransitionStartState::Name(self.current_state.name.clone());
+
+        match self.transitions.iter().find(|x| {
+            (x.start_state == start_state || x.start_state == TransitionStartState::Any)
+                && match &x.trigger {
+                    Trigger::Condition(condition) => condition(&self.parameters),
+                    _ => false,
+                }
+        }) {
+            Some(transition) => {
+                self.current_state.name = match &transition.end_state {
+                    TransitionEndState::Name(name) => name.clone(),
+                };
+                self.current_state.elapsed = 0.0;
+                self.current_state.state = match self.states.get(&self.current_state.name) {
+                    Some(state) => state.clone(),
+                    None => {
+                        panic!("transition end state {} not found", self.current_state.name)
+                    }
+                };
+            }
+            None => {}
+        };
     }
 
     pub fn update(&mut self, delta_time: f32) {
-        self.current_state.elapsed += delta_time;
+        if self.current_state.elapsed < self.current_state.state.duration {
+            self.current_state.elapsed += delta_time;
 
-        let transitions: Vec<&Transition<T>> = self
-            .transitions
-            .iter()
-            .filter(|x| {
-                x.start_state == StateNode::Name(self.current_state.name.clone())
-                    || x.start_state == StateNode::Any
-            })
-            .collect();
+            if self.current_state.elapsed >= self.current_state.state.duration {
+                if self.current_state.state.repeat {
+                    self.current_state.elapsed = 0.0;
+                }
 
-        for transition in transitions {
-            match &transition.trigger {
-                Trigger::Condition(condition) => {
-                    if condition(&self.parameters) {
+                let start_state = TransitionStartState::Name(self.current_state.name.clone());
+
+                match self.transitions.iter().find(|x| {
+                    matches!(x.trigger, Trigger::End)
+                        && (x.start_state == start_state
+                            || x.start_state == TransitionStartState::Any)
+                }) {
+                    Some(transition) => {
                         self.current_state.name = match &transition.end_state {
-                            StateNode::Name(name) => name.clone(),
-                            StateNode::Any => panic!("invalid end state any"),
+                            TransitionEndState::Name(name) => name.clone(),
                         };
                         self.current_state.elapsed = 0.0;
-                        self.current_state.duration =
-                            self.states.get(&self.current_state.name).unwrap().duration;
+                        self.current_state.state = match self.states.get(&self.current_state.name) {
+                            Some(state) => state.clone(),
+                            None => {
+                                panic!("transition end state {} not found", self.current_state.name)
+                            }
+                        };
 
                         return;
                     }
+                    None => {}
                 }
             }
         }
@@ -65,25 +97,33 @@ impl<T> StateMachine<T> {
 pub struct CurrentState {
     pub name: String,
     pub elapsed: f32,
-    pub duration: f32,
+    pub state: State,
 }
 
+#[derive(Clone)]
 pub struct State {
     pub duration: f32,
+    pub repeat: bool,
+}
+
+pub struct Transition<T> {
+    pub start_state: TransitionStartState,
+    pub end_state: TransitionEndState,
+    pub trigger: Trigger<T>,
 }
 
 #[derive(Clone, PartialEq)]
-pub enum StateNode {
+pub enum TransitionStartState {
     Any,
     Name(String),
 }
 
-pub struct Transition<T> {
-    pub start_state: StateNode,
-    pub end_state: StateNode,
-    pub trigger: Trigger<T>,
+#[derive(Clone, PartialEq)]
+pub enum TransitionEndState {
+    Name(String),
 }
 
 pub enum Trigger<T> {
     Condition(Box<fn(&Rc<T>) -> bool>),
+    End,
 }
