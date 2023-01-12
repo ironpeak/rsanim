@@ -28,14 +28,37 @@ impl<T> StateMachine<T> {
 
     pub fn update_parameters(&mut self, update: Box<dyn Fn(Rc<T>) -> Rc<T>>) {
         self.parameters = update(self.parameters.clone());
-
-        todo!()
     }
 
     pub fn update(&mut self, delta_time: f32) {
         self.current_state.elapsed += delta_time;
 
-        todo!()
+        let transitions: Vec<&Transition<T>> = self
+            .transitions
+            .iter()
+            .filter(|x| {
+                x.start_state == StateNode::Name(self.current_state.name.clone())
+                    || x.start_state == StateNode::Any
+            })
+            .collect();
+
+        for transition in transitions {
+            match &transition.trigger {
+                Trigger::Condition(condition) => {
+                    if condition(&self.parameters) {
+                        self.current_state.name = match &transition.end_state {
+                            StateNode::Name(name) => name.clone(),
+                            StateNode::Any => panic!("invalid end state any"),
+                        };
+                        self.current_state.elapsed = 0.0;
+                        self.current_state.duration =
+                            self.states.get(&self.current_state.name).unwrap().duration;
+
+                        return;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -49,10 +72,9 @@ pub struct State {
     pub duration: f32,
 }
 
+#[derive(Clone, PartialEq)]
 pub enum StateNode {
     Any,
-    Entry,
-    End,
     Name(String),
 }
 
