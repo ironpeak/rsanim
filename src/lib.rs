@@ -1,19 +1,24 @@
+use std::hash::Hash;
 use std::{collections::HashMap, rc::Rc};
 
-pub struct StateMachine<T> {
-    current_state: CurrentState,
-    states: HashMap<String, State>,
-    transitions: Vec<Transition<T>>,
-    parameters: Rc<T>,
+#[derive(Clone)]
+pub struct StateMachine<K, V> {
+    current_state: CurrentState<K>,
+    states: HashMap<K, State>,
+    transitions: Vec<Transition<K, V>>,
+    parameters: Rc<V>,
 }
 
-impl<T> StateMachine<T> {
+impl<K, V> StateMachine<K, V>
+where
+    K: Clone + Eq + Hash,
+{
     pub fn new(
-        starting_state: String,
-        states: HashMap<String, State>,
-        transitions: Vec<Transition<T>>,
-        parameters: T,
-    ) -> Result<Self, StateMachineError> {
+        starting_state: K,
+        states: HashMap<K, State>,
+        transitions: Vec<Transition<K, V>>,
+        parameters: V,
+    ) -> Result<Self, StateMachineError<K>> {
         // validate that the starting state exists
         let start = match states.get(&starting_state) {
             Some(state) => state,
@@ -25,23 +30,23 @@ impl<T> StateMachine<T> {
         for transition in &transitions {
             match &transition.start_state {
                 TransitionStartState::Any => {}
-                TransitionStartState::Name(name) => {
-                    if !states.contains_key(name) {
-                        return Err(StateMachineError::InvalidTransitionStartState(name.clone()));
+                TransitionStartState::Node(key) => {
+                    if !states.contains_key(key) {
+                        return Err(StateMachineError::InvalidTransitionStartState(key.clone()));
                     }
                 }
             }
             match &transition.end_state {
-                TransitionEndState::Name(name) => {
-                    if !states.contains_key(name) {
-                        return Err(StateMachineError::InvalidTransitionEndState(name.clone()));
+                TransitionEndState::Node(key) => {
+                    if !states.contains_key(key) {
+                        return Err(StateMachineError::InvalidTransitionEndState(key.clone()));
                     }
                 }
             }
         }
         Ok(Self {
             current_state: CurrentState {
-                name: starting_state,
+                key: starting_state,
                 duration: start.duration,
                 elapsed: 0.0,
                 repeat: start.repeat,
@@ -52,10 +57,18 @@ impl<T> StateMachine<T> {
         })
     }
 
-    pub fn update_parameters(&mut self, update: Box<dyn Fn(Rc<T>) -> Rc<T>>) {
+    pub fn state(&self) -> &CurrentState<K> {
+        &self.current_state
+    }
+
+    pub fn parameters(&self) -> &Rc<V> {
+        &self.parameters
+    }
+
+    pub fn update_parameters(&mut self, update: Box<dyn Fn(Rc<V>) -> Rc<V>>) {
         self.parameters = update(self.parameters.clone());
 
-        let start_state = TransitionStartState::Name(self.current_state.name.clone());
+        let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
         match self.transitions.iter().find(|x| {
             (x.start_state == start_state || x.start_state == TransitionStartState::Any)
@@ -66,14 +79,14 @@ impl<T> StateMachine<T> {
         }) {
             Some(transition) => {
                 let end_state_name = match &transition.end_state {
-                    TransitionEndState::Name(name) => name,
+                    TransitionEndState::Node(key) => key,
                 };
                 let end_state = match self.states.get(end_state_name) {
                     Some(state) => state,
                     None => unreachable!(),
                 };
 
-                self.current_state.name = end_state_name.clone();
+                self.current_state.key = end_state_name.clone();
                 self.current_state.duration = end_state.duration;
                 self.current_state.elapsed = 0.0;
                 self.current_state.repeat = end_state.repeat;
@@ -91,7 +104,7 @@ impl<T> StateMachine<T> {
                     self.current_state.elapsed = 0.0;
                 }
 
-                let start_state = TransitionStartState::Name(self.current_state.name.clone());
+                let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
                 match self.transitions.iter().find(|x| {
                     matches!(x.trigger, Trigger::End)
@@ -100,14 +113,14 @@ impl<T> StateMachine<T> {
                 }) {
                     Some(transition) => {
                         let end_state_name = match &transition.end_state {
-                            TransitionEndState::Name(name) => name,
+                            TransitionEndState::Node(name) => name,
                         };
                         let end_state = match self.states.get(end_state_name) {
                             Some(state) => state,
                             None => unreachable!(),
                         };
 
-                        self.current_state.name = end_state_name.clone();
+                        self.current_state.key = end_state_name.clone();
                         self.current_state.duration = end_state.duration;
                         self.current_state.elapsed = 0.0;
                         self.current_state.repeat = end_state.repeat;
@@ -119,42 +132,46 @@ impl<T> StateMachine<T> {
     }
 }
 
-pub enum StateMachineError {
-    InvalidStartingState(String),
-    InvalidTransitionStartState(String),
-    InvalidTransitionEndState(String),
+#[derive(Clone, PartialEq, Debug)]
+pub enum StateMachineError<K> {
+    InvalidStartingState(K),
+    InvalidTransitionStartState(K),
+    InvalidTransitionEndState(K),
 }
 
-pub struct CurrentState {
-    pub name: String,
+#[derive(Clone, PartialEq, Debug)]
+pub struct CurrentState<K> {
+    pub key: K,
     pub duration: f32,
     pub elapsed: f32,
     pub repeat: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct State {
     pub duration: f32,
     pub repeat: bool,
 }
 
-pub struct Transition<T> {
-    pub start_state: TransitionStartState,
-    pub end_state: TransitionEndState,
+#[derive(Clone)]
+pub struct Transition<K, T> {
+    pub start_state: TransitionStartState<K>,
+    pub end_state: TransitionEndState<K>,
     pub trigger: Trigger<T>,
 }
 
-#[derive(Clone, PartialEq)]
-pub enum TransitionStartState {
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub enum TransitionStartState<K> {
     Any,
-    Name(String),
+    Node(K),
 }
 
-#[derive(Clone, PartialEq)]
-pub enum TransitionEndState {
-    Name(String),
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub enum TransitionEndState<K> {
+    Node(K),
 }
 
+#[derive(Clone)]
 pub enum Trigger<T> {
     Condition(Box<fn(&Rc<T>) -> bool>),
     End,
