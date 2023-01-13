@@ -14,6 +14,14 @@ impl<T> StateMachine<T> {
         transitions: Vec<Transition<T>>,
         parameters: T,
     ) -> Result<Self, StateMachineError> {
+        // validate that the starting state exists
+        let start = match states.get(&starting_state) {
+            Some(state) => state,
+            None => {
+                return Err(StateMachineError::InvalidStartingState(starting_state));
+            }
+        };
+        // validate that the start and end states of each transition exist
         for transition in &transitions {
             match &transition.start_state {
                 TransitionStartState::Any => {}
@@ -33,14 +41,10 @@ impl<T> StateMachine<T> {
         }
         Ok(Self {
             current_state: CurrentState {
-                state: match states.get(&starting_state) {
-                    Some(state) => state.clone(),
-                    None => {
-                        return Err(StateMachineError::InvalidStartingState(starting_state));
-                    }
-                },
                 name: starting_state,
+                duration: start.duration,
                 elapsed: 0.0,
+                repeat: start.repeat,
             },
             states,
             transitions,
@@ -61,25 +65,29 @@ impl<T> StateMachine<T> {
                 }
         }) {
             Some(transition) => {
-                self.current_state.name = match &transition.end_state {
-                    TransitionEndState::Name(name) => name.clone(),
+                let end_state_name = match &transition.end_state {
+                    TransitionEndState::Name(name) => name,
                 };
-                self.current_state.elapsed = 0.0;
-                self.current_state.state = match self.states.get(&self.current_state.name) {
-                    Some(state) => state.clone(),
+                let end_state = match self.states.get(end_state_name) {
+                    Some(state) => state,
                     None => unreachable!(),
                 };
+
+                self.current_state.name = end_state_name.clone();
+                self.current_state.duration = end_state.duration;
+                self.current_state.elapsed = 0.0;
+                self.current_state.repeat = end_state.repeat;
             }
             None => {}
         };
     }
 
     pub fn update(&mut self, delta_time: f32) {
-        if self.current_state.elapsed < self.current_state.state.duration {
+        if self.current_state.elapsed < self.current_state.duration {
             self.current_state.elapsed += delta_time;
 
-            if self.current_state.elapsed >= self.current_state.state.duration {
-                if self.current_state.state.repeat {
+            if self.current_state.elapsed >= self.current_state.duration {
+                if self.current_state.repeat {
                     self.current_state.elapsed = 0.0;
                 }
 
@@ -91,14 +99,18 @@ impl<T> StateMachine<T> {
                             || x.start_state == TransitionStartState::Any)
                 }) {
                     Some(transition) => {
-                        self.current_state.name = match &transition.end_state {
-                            TransitionEndState::Name(name) => name.clone(),
+                        let end_state_name = match &transition.end_state {
+                            TransitionEndState::Name(name) => name,
                         };
-                        self.current_state.elapsed = 0.0;
-                        self.current_state.state = match self.states.get(&self.current_state.name) {
-                            Some(state) => state.clone(),
+                        let end_state = match self.states.get(end_state_name) {
+                            Some(state) => state,
                             None => unreachable!(),
                         };
+
+                        self.current_state.name = end_state_name.clone();
+                        self.current_state.duration = end_state.duration;
+                        self.current_state.elapsed = 0.0;
+                        self.current_state.repeat = end_state.repeat;
                     }
                     None => {}
                 }
@@ -115,8 +127,9 @@ pub enum StateMachineError {
 
 pub struct CurrentState {
     pub name: String,
+    pub duration: f32,
     pub elapsed: f32,
-    pub state: State,
+    pub repeat: bool,
 }
 
 #[derive(Clone)]
