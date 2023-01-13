@@ -1,12 +1,12 @@
+use std::collections::HashMap;
 use std::hash::Hash;
-use std::{collections::HashMap, rc::Rc};
 
 #[derive(Clone)]
 pub struct StateMachine<K, V> {
     current_state: CurrentState<K>,
     states: HashMap<K, State>,
     transitions: Vec<Transition<K, V>>,
-    parameters: Rc<V>,
+    parameters: V,
 }
 
 impl<K, V> StateMachine<K, V>
@@ -53,7 +53,7 @@ where
             },
             states,
             transitions,
-            parameters: Rc::new(parameters),
+            parameters,
         })
     }
 
@@ -61,12 +61,12 @@ where
         &self.current_state
     }
 
-    pub fn parameters(&self) -> &Rc<V> {
+    pub fn parameters(&self) -> &V {
         &self.parameters
     }
 
-    pub fn update_parameters(&mut self, update: Box<dyn Fn(Rc<V>) -> Rc<V>>) {
-        self.parameters = update(self.parameters.clone());
+    pub fn update_parameters(&mut self, update: &dyn Fn(&mut V)) {
+        update(&mut self.parameters);
 
         let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
@@ -147,6 +147,16 @@ pub struct CurrentState<K> {
     pub repeat: bool,
 }
 
+impl<K> CurrentState<K> {
+    pub fn progress(&self) -> f32 {
+        self.elapsed / self.duration
+    }
+
+    pub fn finished(&self) -> bool {
+        self.elapsed >= self.duration
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct State {
     pub duration: f32,
@@ -173,6 +183,6 @@ pub enum TransitionEndState<K> {
 
 #[derive(Clone)]
 pub enum Trigger<T> {
-    Condition(Box<fn(&Rc<T>) -> bool>),
+    Condition(Box<fn(&T) -> bool>),
     End,
 }
