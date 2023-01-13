@@ -13,12 +13,31 @@ impl<T> StateMachine<T> {
         states: HashMap<String, State>,
         transitions: Vec<Transition<T>>,
         parameters: T,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, StateMachineError> {
+        for transition in &transitions {
+            match &transition.start_state {
+                TransitionStartState::Any => {}
+                TransitionStartState::Name(name) => {
+                    if !states.contains_key(name) {
+                        return Err(StateMachineError::InvalidTransitionStartState(name.clone()));
+                    }
+                }
+            }
+            match &transition.end_state {
+                TransitionEndState::Name(name) => {
+                    if !states.contains_key(name) {
+                        return Err(StateMachineError::InvalidTransitionEndState(name.clone()));
+                    }
+                }
+            }
+        }
+        Ok(Self {
             current_state: CurrentState {
                 state: match states.get(&starting_state) {
                     Some(state) => state.clone(),
-                    None => panic!("invalid starting state"),
+                    None => {
+                        return Err(StateMachineError::InvalidStartingState(starting_state));
+                    }
                 },
                 name: starting_state,
                 elapsed: 0.0,
@@ -26,7 +45,7 @@ impl<T> StateMachine<T> {
             states,
             transitions,
             parameters: Rc::new(parameters),
-        }
+        })
     }
 
     pub fn update_parameters(&mut self, update: Box<dyn Fn(Rc<T>) -> Rc<T>>) {
@@ -48,9 +67,7 @@ impl<T> StateMachine<T> {
                 self.current_state.elapsed = 0.0;
                 self.current_state.state = match self.states.get(&self.current_state.name) {
                     Some(state) => state.clone(),
-                    None => {
-                        panic!("transition end state {} not found", self.current_state.name)
-                    }
+                    None => unreachable!(),
                 };
             }
             None => {}
@@ -80,18 +97,20 @@ impl<T> StateMachine<T> {
                         self.current_state.elapsed = 0.0;
                         self.current_state.state = match self.states.get(&self.current_state.name) {
                             Some(state) => state.clone(),
-                            None => {
-                                panic!("transition end state {} not found", self.current_state.name)
-                            }
+                            None => unreachable!(),
                         };
-
-                        return;
                     }
                     None => {}
                 }
             }
         }
     }
+}
+
+pub enum StateMachineError {
+    InvalidStartingState(String),
+    InvalidTransitionStartState(String),
+    InvalidTransitionEndState(String),
 }
 
 pub struct CurrentState {
