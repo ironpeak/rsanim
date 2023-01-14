@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct StateMachine<K, V> {
     current_state: CurrentState<K>,
     states: HashMap<K, State>,
@@ -11,7 +12,7 @@ pub struct StateMachine<K, V> {
 
 impl<K, V> StateMachine<K, V>
 where
-    K: Clone + Eq + Hash,
+    K: Clone + Eq + PartialEq + Hash,
 {
     pub fn new(
         starting_state: K,
@@ -153,11 +154,11 @@ pub struct State {
     pub repeat: bool,
 }
 
-#[derive(Clone)]
-pub struct Transition<K, T> {
+#[derive(Clone, Debug)]
+pub struct Transition<K, V> {
     pub start_state: TransitionStartState<K>,
     pub end_state: TransitionEndState<K>,
-    pub trigger: Trigger<T>,
+    pub trigger: Trigger<V>,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -172,7 +173,16 @@ pub enum TransitionEndState<K> {
 }
 
 #[derive(Clone)]
-pub enum Trigger<T> {
-    Condition(Box<fn(&T) -> bool>),
+pub enum Trigger<V> {
+    Condition(Box<fn(&V) -> bool>),
     End,
+}
+
+impl<V> Debug for Trigger<V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Trigger::Condition(_) => write!(f, "Condition"),
+            Trigger::End => write!(f, "End"),
+        }
+    }
 }
