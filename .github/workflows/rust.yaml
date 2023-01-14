@@ -6,7 +6,7 @@ on:
       - '*'
 
 jobs:
-  ciro:
+  rsanim:
     runs-on: ubuntu-latest
 
     defaults:
@@ -18,7 +18,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - run: sudo apt-get update
+      - run: sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
       - run: cargo clippy --all
       - run: cargo build
       - run: cargo test

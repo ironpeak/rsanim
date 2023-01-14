@@ -168,6 +168,65 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 
+/// The state machine.
+///
+/// Use this to track an entity's animation state.
+///
+/// ```
+/// # use rsanim::*;
+/// # use std::collections::HashMap;
+///
+/// #[derive(Clone, Eq, PartialEq, Hash, Debug)]
+/// enum Animation {
+///     Idle,
+///     Run,
+/// }
+///
+/// #[derive(Clone, Debug, PartialEq)]
+/// struct Params {
+///     pub speed: f32,
+/// }
+///
+/// let mut state_machine = StateMachine::new(
+///     Animation::Idle,
+///     HashMap::from([
+///         (
+///             Animation::Idle,
+///             State {
+///                 duration: 0.5,
+///                 repeat: true,
+///             },
+///         ),
+///         (
+///             Animation::Run,
+///             State {
+///                 duration: 1.0,
+///                 repeat: true,
+///             },
+///         ),
+///     ]),
+///     vec![
+///         Transition {
+///             start_state: TransitionStartState::Node(Animation::Idle),
+///             end_state: TransitionEndState::Node(Animation::Run),
+///             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
+///         },
+///         Transition {
+///             start_state: TransitionStartState::Node(Animation::Run),
+///             end_state: TransitionEndState::Node(Animation::Idle),
+///             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
+///         },
+///     ],
+///     Params { speed: 0.0 },
+/// )
+/// .unwrap();
+///
+/// state_machine.update_parameters(&|x| {
+///    x.speed = 1.0;
+/// });
+///
+/// state_machine.update(0.1);
+/// ```
 #[derive(Clone, Debug)]
 pub struct StateMachine<K, V> {
     current_state: CurrentState<K>,
@@ -180,6 +239,7 @@ impl<K, V> StateMachine<K, V>
 where
     K: Clone + Eq + PartialEq + Hash,
 {
+    /// Creates a new [`StateMachine`]
     pub fn new(
         starting_state: K,
         states: HashMap<K, State>,
@@ -224,14 +284,17 @@ where
         })
     }
 
+    /// Returns the current state
     pub fn state(&self) -> &CurrentState<K> {
         &self.current_state
     }
 
+    /// Returns the parameters
     pub fn parameters(&self) -> &V {
         &self.parameters
     }
 
+    /// Updates the parameters
     pub fn update_parameters(&mut self, update: &dyn Fn(&mut V)) {
         update(&mut self.parameters);
 
@@ -257,6 +320,7 @@ where
         };
     }
 
+    /// Updates elapsed time
     pub fn update(&mut self, delta_time: f32) {
         if self.current_state.elapsed < self.current_state.duration {
             self.current_state.elapsed += delta_time;
@@ -292,58 +356,84 @@ where
     }
 }
 
+/// A state machine error
 #[derive(Clone, PartialEq, Debug)]
 pub enum StateMachineError<K> {
+    /// The starting state does not exist
     InvalidStartingState(K),
+    /// The start state of a transition does not exist
     InvalidTransitionStartState(K),
+    /// The end state of a transition does not exist
     InvalidTransitionEndState(K),
 }
 
+/// A state machine's current state
 #[derive(Clone, PartialEq, Debug)]
 pub struct CurrentState<K> {
+    /// The current state key
     pub key: K,
+    /// The current state duration
     pub duration: f32,
+    /// The current state elapsed time
     pub elapsed: f32,
+    /// Whether the current state repeats
     pub repeat: bool,
 }
 
 impl<K> CurrentState<K> {
+    /// Returns the current state's progress [0.0, 1.0)
     pub fn progress(&self) -> f32 {
         self.elapsed / self.duration
     }
 
+    /// Returns whether the current state is finished
     pub fn finished(&self) -> bool {
         self.elapsed >= self.duration
     }
 }
 
+/// A state
 #[derive(Clone, PartialEq, Debug)]
 pub struct State {
+    /// The state duration
     pub duration: f32,
+    /// Whether the state repeats
     pub repeat: bool,
 }
 
+/// A transition
 #[derive(Clone, Debug)]
 pub struct Transition<K, V> {
+    /// The start state
     pub start_state: TransitionStartState<K>,
+    /// The end state
     pub end_state: TransitionEndState<K>,
+    /// The trigger
     pub trigger: Trigger<V>,
 }
 
+/// A transition start state
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum TransitionStartState<K> {
+    /// Any state
     Any,
+    /// A specific state
     Node(K),
 }
 
+/// A transition end state
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum TransitionEndState<K> {
+    /// A specific state
     Node(K),
 }
 
+/// A trigger
 #[derive(Clone)]
 pub enum Trigger<V> {
+    /// A condition
     Condition(Box<fn(&V) -> bool>),
+    /// End
     End,
 }
 
