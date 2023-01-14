@@ -2,6 +2,13 @@
 name = "rsanim"
 version = "0.1.0"
 edition = "2021"
+description = "A basic state machine for managing sprite animations"
+repository = "https://github.com/ironpeak/rsanim"
+authors = ["Hrafn Orri Hrafnkelsson <hrafnorri@bitcrow.net>"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["gamedev", "animation", "bevy"]
+categories = ["game-development"]
 
 [[example]]
 name = "bevy"
