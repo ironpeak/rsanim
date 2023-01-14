@@ -1,0 +1,23 @@
+name: rust
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  ciro:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo clippy --all
+      - run: cargo build
+      - run: cargo test
