@@ -3,4 +3,9 @@ name = "rsanim"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
+[[example]]
+name = "bevy"
+path = "examples/bevy.rs"
+
+[dev-dependencies]
+bevy = { version = "0.9.1" }
