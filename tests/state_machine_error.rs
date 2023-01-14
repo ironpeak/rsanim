@@ -2,10 +2,9 @@ use rsanim::StateMachineError;
 
 #[test]
 fn clone() {
-    assert_eq!(
-        StateMachineError::InvalidStartingState("test".to_string()).clone(),
-        StateMachineError::InvalidStartingState("test".to_string())
-    );
+    let error = StateMachineError::InvalidStartingState("test".to_string());
+
+    assert_eq!(format!("{:?}", error.clone()), format!("{:?}", error));
 }
 
 #[test]

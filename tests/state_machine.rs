@@ -32,7 +32,7 @@ fn clone() {
     )
     .unwrap();
 
-    assert_eq!(format!("{:?}", sm), format!("{:?}", sm.clone()));
+    assert_eq!(format!("{:?}", sm.clone()), format!("{:?}", sm));
 }
 
 #[test]

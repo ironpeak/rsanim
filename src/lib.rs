@@ -97,7 +97,10 @@ where
 
             if self.current_state.elapsed >= self.current_state.duration {
                 if self.current_state.repeat {
-                    self.current_state.elapsed = 0.0;
+                    self.current_state.elapsed =
+                        self.current_state.elapsed % self.current_state.duration;
+                } else {
+                    self.current_state.elapsed = self.current_state.duration;
                 }
 
                 let start_state = TransitionStartState::Node(self.current_state.key.clone());
