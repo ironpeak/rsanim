@@ -42,33 +42,33 @@ mod tests {
                     start_state: TransitionStartState::Node("idle".to_string()),
                     end_state: TransitionEndState::Node("walk".to_string()),
                     trigger: Trigger::Condition(Box::new(|x: &Params| {
-                        x.speed > 0.0 && x.jump == false
+                        x.speed > 0.0 && !x.jump
                     })),
                 },
                 Transition {
                     start_state: TransitionStartState::Node("walk".to_string()),
                     end_state: TransitionEndState::Node("idle".to_string()),
                     trigger: Trigger::Condition(Box::new(|x: &Params| {
-                        x.speed <= 0.0 && x.jump == false
+                        x.speed <= 0.0 && !x.jump
                     })),
                 },
                 Transition {
                     start_state: TransitionStartState::Any,
                     end_state: TransitionEndState::Node("jump".to_string()),
-                    trigger: Trigger::Condition(Box::new(|x: &Params| x.jump == true)),
+                    trigger: Trigger::Condition(Box::new(|x: &Params| x.jump)),
                 },
                 Transition {
                     start_state: TransitionStartState::Node("jump".to_string()),
                     end_state: TransitionEndState::Node("idle".to_string()),
                     trigger: Trigger::Condition(Box::new(|x: &Params| {
-                        x.speed <= 0.0 && x.jump == false
+                        x.speed <= 0.0 && !x.jump
                     })),
                 },
                 Transition {
                     start_state: TransitionStartState::Node("jump".to_string()),
                     end_state: TransitionEndState::Node("walk".to_string()),
                     trigger: Trigger::Condition(Box::new(|x: &Params| {
-                        x.speed > 0.0 && x.jump == false
+                        x.speed > 0.0 && !x.jump
                     })),
                 },
             ],

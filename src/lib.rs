@@ -70,28 +70,23 @@ where
 
         let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
-        match self.transitions.iter().find(|x| {
+        if let Some(transition) = self.transitions.iter().find(|x| {
             (x.start_state == start_state || x.start_state == TransitionStartState::Any)
                 && match &x.trigger {
                     Trigger::Condition(condition) => condition(&self.parameters),
                     _ => false,
                 }
         }) {
-            Some(transition) => {
-                let end_state_name = match &transition.end_state {
-                    TransitionEndState::Node(key) => key,
-                };
-                let end_state = match self.states.get(end_state_name) {
-                    Some(state) => state,
-                    None => unreachable!(),
-                };
+            let TransitionEndState::Node(end_state_name) = &transition.end_state;
+            let end_state = match self.states.get(end_state_name) {
+                Some(state) => state,
+                None => unreachable!(),
+            };
 
-                self.current_state.key = end_state_name.clone();
-                self.current_state.duration = end_state.duration;
-                self.current_state.elapsed = 0.0;
-                self.current_state.repeat = end_state.repeat;
-            }
-            None => {}
+            self.current_state.key = end_state_name.clone();
+            self.current_state.duration = end_state.duration;
+            self.current_state.elapsed = 0.0;
+            self.current_state.repeat = end_state.repeat;
         };
     }
 
@@ -106,26 +101,21 @@ where
 
                 let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
-                match self.transitions.iter().find(|x| {
+                if let Some(transition) = self.transitions.iter().find(|x| {
                     matches!(x.trigger, Trigger::End)
                         && (x.start_state == start_state
                             || x.start_state == TransitionStartState::Any)
                 }) {
-                    Some(transition) => {
-                        let end_state_name = match &transition.end_state {
-                            TransitionEndState::Node(name) => name,
-                        };
-                        let end_state = match self.states.get(end_state_name) {
-                            Some(state) => state,
-                            None => unreachable!(),
-                        };
+                    let TransitionEndState::Node(end_state_name) = &transition.end_state;
+                    let end_state = match self.states.get(end_state_name) {
+                        Some(state) => state,
+                        None => unreachable!(),
+                    };
 
-                        self.current_state.key = end_state_name.clone();
-                        self.current_state.duration = end_state.duration;
-                        self.current_state.elapsed = 0.0;
-                        self.current_state.repeat = end_state.repeat;
-                    }
-                    None => {}
+                    self.current_state.key = end_state_name.clone();
+                    self.current_state.duration = end_state.duration;
+                    self.current_state.elapsed = 0.0;
+                    self.current_state.repeat = end_state.repeat;
                 }
             }
         }
