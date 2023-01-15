@@ -164,7 +164,7 @@
 //! });
 //! ```
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 
@@ -394,13 +394,50 @@ where
         &self.parameters
     }
 
+    fn transition(&mut self) {
+        let mut visited = HashSet::new();
+
+        loop {
+            let start_state = TransitionStartState::Node(self.current_state.key.clone());
+            let state_ended = self.current_state.elapsed >= self.current_state.duration;
+            if let Some(transition) = self.transitions.iter().find(|x| {
+                (x.start_state == start_state || x.start_state == TransitionStartState::Any)
+                    && match &x.trigger {
+                        TransitionTrigger::Condition(condition) => condition(&self.parameters),
+                        TransitionTrigger::End => state_ended,
+                    }
+            }) {
+                let TransitionEndState::Node(end_state_key) = &transition.end_state;
+
+                if visited.contains(end_state_key) {
+                    // We have already visited this state, so we should stop
+                    break;
+                }
+
+                let end_state = match self.states.get(end_state_key) {
+                    Some(state) => state,
+                    None => unreachable!(),
+                };
+
+                self.current_state.key = end_state_key.clone();
+                self.current_state.duration = end_state.duration;
+                self.current_state.elapsed = 0.0;
+                self.current_state.repeat = end_state.repeat;
+
+                visited.insert(end_state_key.clone());
+            } else {
+                break;
+            }
+        }
+    }
+
     /// Updates the parameters
     pub fn update_parameters(&mut self, update: &dyn Fn(&mut V)) {
         update(&mut self.parameters);
 
-        // TODO: make sure we transition through every matching state
         let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
+        // Only trigger conditional transitions since the time has not changed
         if let Some(transition) = self.transitions.iter().find(|x| {
             (x.start_state == start_state || x.start_state == TransitionStartState::Any)
                 && match &x.trigger {
@@ -408,16 +445,19 @@ where
                     _ => false,
                 }
         }) {
-            let TransitionEndState::Node(end_state_name) = &transition.end_state;
-            let end_state = match self.states.get(end_state_name) {
+            let TransitionEndState::Node(end_state_key) = &transition.end_state;
+            let end_state = match self.states.get(end_state_key) {
                 Some(state) => state,
                 None => unreachable!(),
             };
 
-            self.current_state.key = end_state_name.clone();
+            self.current_state.key = end_state_key.clone();
             self.current_state.duration = end_state.duration;
             self.current_state.elapsed = 0.0;
             self.current_state.repeat = end_state.repeat;
+
+            // Make sure we transition through any more transitions
+            self.transition();
         };
     }
 
@@ -428,29 +468,32 @@ where
 
             if self.current_state.elapsed >= self.current_state.duration {
                 if self.current_state.repeat {
-                    self.current_state.elapsed =
-                        self.current_state.elapsed % self.current_state.duration;
+                    self.current_state.elapsed %= self.current_state.duration
                 } else {
                     self.current_state.elapsed = self.current_state.duration;
                 }
 
                 let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
+                // Only trigger end transitions since the parameters have not changed
                 if let Some(transition) = self.transitions.iter().find(|x| {
                     matches!(x.trigger, TransitionTrigger::End)
                         && (x.start_state == start_state
                             || x.start_state == TransitionStartState::Any)
                 }) {
-                    let TransitionEndState::Node(end_state_name) = &transition.end_state;
-                    let end_state = match self.states.get(end_state_name) {
+                    let TransitionEndState::Node(end_state_key) = &transition.end_state;
+                    let end_state = match self.states.get(end_state_key) {
                         Some(state) => state,
                         None => unreachable!(),
                     };
 
-                    self.current_state.key = end_state_name.clone();
+                    self.current_state.key = end_state_key.clone();
                     self.current_state.duration = end_state.duration;
                     self.current_state.elapsed = 0.0;
                     self.current_state.repeat = end_state.repeat;
+
+                    // Make sure we transition through any more transitions
+                    self.transition();
                 }
             }
         }
