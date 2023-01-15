@@ -8,4 +8,4 @@ mod state_machine_state;
 mod transition;
 mod transition_end_state;
 mod transition_start_state;
-mod trigger;
+mod transition_trigger;
