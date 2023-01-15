@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
+use rsanim::{
+    State, StateMachine, Transition, TransitionEndState, TransitionStartState, TransitionTrigger,
+};
+
 use bevy::{
     prelude::*,
     render::camera::{ScalingMode, WindowOrigin},
     window::{self, PresentMode},
 };
-use rsanim::{State, StateMachine, Transition, TransitionEndState, TransitionStartState, Trigger};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PlayerAnimState {
@@ -102,17 +105,17 @@ fn setup(mut commands: Commands) {
                     Transition {
                         start_state: TransitionStartState::Node(PlayerAnimState::Red),
                         end_state: TransitionEndState::Node(PlayerAnimState::Green),
-                        trigger: Trigger::End,
+                        trigger: TransitionTrigger::End,
                     },
                     Transition {
                         start_state: TransitionStartState::Node(PlayerAnimState::Green),
                         end_state: TransitionEndState::Node(PlayerAnimState::Blue),
-                        trigger: Trigger::End,
+                        trigger: TransitionTrigger::End,
                     },
                     Transition {
                         start_state: TransitionStartState::Node(PlayerAnimState::Blue),
                         end_state: TransitionEndState::Node(PlayerAnimState::Red),
-                        trigger: Trigger::End,
+                        trigger: TransitionTrigger::End,
                     },
                 ],
                 PlayerAnimParams {},

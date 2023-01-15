@@ -1,11 +1,11 @@
-use rsanim::{Transition, TransitionEndState, TransitionStartState, Trigger};
+use rsanim::{Transition, TransitionEndState, TransitionStartState, TransitionTrigger};
 
 #[test]
 fn clone() {
     let transition = Transition {
         start_state: TransitionStartState::Any,
         end_state: TransitionEndState::Node("test".to_string()),
-        trigger: Trigger::<String>::End,
+        trigger: TransitionTrigger::<String>::End,
     };
 
     assert_eq!(
@@ -19,7 +19,7 @@ fn debug() {
     let transition = Transition {
         start_state: TransitionStartState::Any,
         end_state: TransitionEndState::Node("test".to_string()),
-        trigger: Trigger::<String>::End,
+        trigger: TransitionTrigger::<String>::End,
     };
 
     assert_eq!(

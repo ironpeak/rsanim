@@ -168,6 +168,106 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 
+#[derive(Clone, Debug)]
+pub struct Animator<K, V, F> {
+    state_machine: StateMachine<K, V>,
+    state_frames: HashMap<K, Vec<Frame<F>>>,
+}
+
+impl<K, V, F> Animator<K, V, F>
+where
+    K: Clone + Eq + PartialEq + Hash,
+{
+    pub fn new(
+        state_machine: StateMachine<K, V>,
+        state_frames: HashMap<K, Vec<Frame<F>>>,
+    ) -> Result<Self, AnimatorError<K>> {
+        for state in state_machine.states.keys() {
+            match state_frames.get(state) {
+                Some(frames) => {
+                    if frames.is_empty() {
+                        return Err(AnimatorError::EmptyStateFrames(state.clone()));
+                    }
+
+                    // make sure frames are sorted by progress
+                    let mut last_progress = -1.0;
+                    for frame in frames {
+                        if frame.progress < last_progress {
+                            return Err(AnimatorError::UnsortedStateFrames(state.clone()));
+                        }
+                        if frame.progress < 0.0 || frame.progress > 1.0 {
+                            return Err(AnimatorError::InvalidStateFrameProgress(
+                                state.clone(),
+                                frame.progress,
+                            ));
+                        }
+                        last_progress = frame.progress;
+                    }
+                }
+                None => return Err(AnimatorError::MissingStateFrames(state.clone())),
+            }
+        }
+
+        Ok(Self {
+            state_machine,
+            state_frames,
+        })
+    }
+
+    pub fn update(&mut self, delta_time: f32) {
+        self.state_machine.update(delta_time);
+    }
+
+    pub fn update_parameters(&mut self, update: &dyn Fn(&mut V)) {
+        self.state_machine.update_parameters(update);
+    }
+
+    pub fn state(&self) -> &CurrentState<K> {
+        self.state_machine.state()
+    }
+
+    pub fn parameters(&self) -> &V {
+        self.state_machine.parameters()
+    }
+
+    pub fn frame(&self) -> &F {
+        let current_state = self.state_machine.state();
+        let frames = match self.state_frames.get(&current_state.key) {
+            Some(frames) => frames,
+            None => unreachable!(),
+        };
+
+        let progress = current_state.progress();
+        let mut frame = &frames[0];
+        for f in frames {
+            if f.progress > progress {
+                return &frame.value;
+            }
+            frame = f;
+        }
+        &frame.value
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Frame<T> {
+    progress: f32,
+    value: T,
+}
+
+/// A animator error
+#[derive(Clone, PartialEq, Debug)]
+pub enum AnimatorError<K> {
+    /// The state machine contains a state with no frames.
+    EmptyStateFrames(K),
+    /// The state machine contains a state without any frames.
+    MissingStateFrames(K),
+    /// The state frames should be sorted by progress.
+    UnsortedStateFrames(K),
+    /// The state frame progress is invalid.
+    InvalidStateFrameProgress(K, f32),
+}
+
 /// The state machine.
 ///
 /// Use this to track an entity's animation state.
@@ -229,10 +329,10 @@ use std::hash::Hash;
 /// ```
 #[derive(Clone, Debug)]
 pub struct StateMachine<K, V> {
-    current_state: CurrentState<K>,
-    states: HashMap<K, State>,
-    transitions: Vec<Transition<K, V>>,
-    parameters: V,
+    pub(crate) current_state: CurrentState<K>,
+    pub(crate) states: HashMap<K, State>,
+    pub(crate) transitions: Vec<Transition<K, V>>,
+    pub(crate) parameters: V,
 }
 
 impl<K, V> StateMachine<K, V>
@@ -298,12 +398,13 @@ where
     pub fn update_parameters(&mut self, update: &dyn Fn(&mut V)) {
         update(&mut self.parameters);
 
+        // TODO: make sure we transition through every matching state
         let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
         if let Some(transition) = self.transitions.iter().find(|x| {
             (x.start_state == start_state || x.start_state == TransitionStartState::Any)
                 && match &x.trigger {
-                    Trigger::Condition(condition) => condition(&self.parameters),
+                    TransitionTrigger::Condition(condition) => condition(&self.parameters),
                     _ => false,
                 }
         }) {
@@ -336,7 +437,7 @@ where
                 let start_state = TransitionStartState::Node(self.current_state.key.clone());
 
                 if let Some(transition) = self.transitions.iter().find(|x| {
-                    matches!(x.trigger, Trigger::End)
+                    matches!(x.trigger, TransitionTrigger::End)
                         && (x.start_state == start_state
                             || x.start_state == TransitionStartState::Any)
                 }) {
@@ -409,7 +510,7 @@ pub struct Transition<K, V> {
     /// The end state
     pub end_state: TransitionEndState<K>,
     /// The trigger
-    pub trigger: Trigger<V>,
+    pub trigger: TransitionTrigger<V>,
 }
 
 /// A transition start state
@@ -430,18 +531,18 @@ pub enum TransitionEndState<K> {
 
 /// A trigger
 #[derive(Clone)]
-pub enum Trigger<V> {
+pub enum TransitionTrigger<V> {
     /// A condition
     Condition(Box<fn(&V) -> bool>),
     /// End
     End,
 }
 
-impl<V> Debug for Trigger<V> {
+impl<V> Debug for TransitionTrigger<V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Trigger::Condition(_) => write!(f, "Condition"),
-            Trigger::End => write!(f, "End"),
+            TransitionTrigger::Condition(_) => write!(f, "Condition"),
+            TransitionTrigger::End => write!(f, "End"),
         }
     }
 }

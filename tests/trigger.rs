@@ -1,20 +1,23 @@
-use rsanim::Trigger;
+use rsanim::TransitionTrigger;
 
 #[test]
 fn clone() {
-    let trigger = Trigger::<String>::End;
-    assert!(matches!(trigger.clone(), Trigger::End));
+    let trigger = TransitionTrigger::<String>::End;
+    assert!(matches!(trigger.clone(), TransitionTrigger::End));
 }
 
 #[test]
 fn debug_end() {
-    assert_eq!(format!("{:?}", Trigger::<String>::End), "End");
+    assert_eq!(format!("{:?}", TransitionTrigger::<String>::End), "End");
 }
 
 #[test]
 fn debug_condition() {
     assert_eq!(
-        format!("{:?}", Trigger::<String>::Condition(Box::new(|_| true))),
+        format!(
+            "{:?}",
+            TransitionTrigger::<String>::Condition(Box::new(|_| true))
+        ),
         "Condition"
     );
 }

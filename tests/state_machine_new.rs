@@ -1,4 +1,4 @@
-use rsanim::{State, StateMachine, StateMachineError, Transition, Trigger};
+use rsanim::{State, StateMachine, StateMachineError, Transition, TransitionTrigger};
 use std::collections::HashMap;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -72,7 +72,7 @@ fn sm_new_invalid_transition_start_state() {
         vec![Transition {
             start_state: rsanim::TransitionStartState::Node(Animation::Walk),
             end_state: rsanim::TransitionEndState::Node(Animation::Idle),
-            trigger: Trigger::End,
+            trigger: TransitionTrigger::End,
         }],
         Params {
             speed: 0.0,
@@ -101,7 +101,7 @@ fn sm_new_invalid_transition_end_state() {
         vec![Transition {
             start_state: rsanim::TransitionStartState::Node(Animation::Idle),
             end_state: rsanim::TransitionEndState::Node(Animation::Walk),
-            trigger: Trigger::End,
+            trigger: TransitionTrigger::End,
         }],
         Params {
             speed: 0.0,
