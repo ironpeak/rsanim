@@ -42,12 +42,12 @@
 //!         Transition {
 //!             start_state: TransitionStartState::Node(Animation::Idle),
 //!             end_state: TransitionEndState::Node(Animation::Run),
-//!             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
+//!             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
 //!         },
 //!         Transition {
 //!             start_state: TransitionStartState::Node(Animation::Run),
 //!             end_state: TransitionEndState::Node(Animation::Idle),
-//!             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
+//!             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
 //!         },
 //!     ],
 //!     Params { speed: 0.0 },
@@ -61,15 +61,15 @@
 //!             Animation::Idle,
 //!             vec![
 //!                 Frame {
-//!                     value: asset_server.load("idle_0.png"),
+//!                     value: 0,
 //!                     progress: 0.00,
 //!                 },
 //!                 Frame {
-//!                     value: asset_server.load("idle_1.png"),
+//!                     value: 1,
 //!                     progress: 0.33,
 //!                 },
 //!                 Frame {
-//!                     value: asset_server.load("idle_2.png"),
+//!                     value: 2,
 //!                     progress: 0.67,
 //!                 },
 //!             ],
@@ -78,22 +78,22 @@
 //!             Animation::Run,
 //!             vec![
 //!                 Frame {
-//!                     value: asset_server.load("run_0.png"),
+//!                     value: 0,
 //!                     progress: 0.00,
 //!                 },
 //!                 Frame {
-//!                     value: asset_server.load("run_1.png"),
+//!                     value: 1,
 //!                     progress: 0.33,
 //!                 },
 //!                 Frame {
-//!                     value: asset_server.load("run_2.png"),
+//!                     value: 2,
 //!                     progress: 0.67,
 //!                 },
 //!             ],
 //!         ),
 //!     ]),
 //! )
-//! .unwrap(),
+//! .unwrap();
 //! ```
 //!
 //! Update the state machine's elapsed time:
@@ -135,34 +135,34 @@
 //! #         Transition {
 //! #             start_state: TransitionStartState::Node(Animation::Idle),
 //! #             end_state: TransitionEndState::Node(Animation::Run),
-//! #             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
+//! #             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
 //! #         },
 //! #         Transition {
 //! #             start_state: TransitionStartState::Node(Animation::Run),
 //! #             end_state: TransitionEndState::Node(Animation::Idle),
-//! #             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
+//! #             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
 //! #         },
 //! #     ],
 //! #     Params { speed: 0.0 },
 //! # )
 //! # .unwrap();
 //!
-//! # let animator = Animator::new(
+//! # let mut animator = Animator::new(
 //! #     state_machine,
 //! #     HashMap::from([
 //! #         (
 //! #             Animation::Idle,
 //! #             vec![
 //! #                 Frame {
-//! #                     value: asset_server.load("idle_0.png"),
+//! #                     value: 0,
 //! #                     progress: 0.00,
 //! #                 },
 //! #                 Frame {
-//! #                     value: asset_server.load("idle_1.png"),
+//! #                     value: 1,
 //! #                     progress: 0.33,
 //! #                 },
 //! #                 Frame {
-//! #                     value: asset_server.load("idle_2.png"),
+//! #                     value: 2,
 //! #                     progress: 0.67,
 //! #                 },
 //! #             ],
@@ -171,22 +171,22 @@
 //! #             Animation::Run,
 //! #             vec![
 //! #                 Frame {
-//! #                     value: asset_server.load("run_0.png"),
+//! #                     value: 0,
 //! #                     progress: 0.00,
 //! #                 },
 //! #                 Frame {
-//! #                     value: asset_server.load("run_1.png"),
+//! #                     value: 1,
 //! #                     progress: 0.33,
 //! #                 },
 //! #                 Frame {
-//! #                     value: asset_server.load("run_2.png"),
+//! #                     value: 2,
 //! #                     progress: 0.67,
 //! #                 },
 //! #             ],
 //! #         ),
 //! #     ]),
 //! # )
-//! # .unwrap(),
+//! # .unwrap();
 //! # let delta_time = 0.1;
 //! animator.update(delta_time);
 //! ```
@@ -230,34 +230,34 @@
 //! #         Transition {
 //! #             start_state: TransitionStartState::Node(Animation::Idle),
 //! #             end_state: TransitionEndState::Node(Animation::Run),
-//! #             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
+//! #             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
 //! #         },
 //! #         Transition {
 //! #             start_state: TransitionStartState::Node(Animation::Run),
 //! #             end_state: TransitionEndState::Node(Animation::Idle),
-//! #             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
+//! #             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
 //! #         },
 //! #     ],
 //! #     Params { speed: 0.0 },
 //! # )
 //! # .unwrap();
 //!
-//! # let animator = Animator::new(
+//! # let mut animator = Animator::new(
 //! #     state_machine,
 //! #     HashMap::from([
 //! #         (
 //! #             Animation::Idle,
 //! #             vec![
 //! #                 Frame {
-//! #                     value: asset_server.load("idle_0.png"),
+//! #                     value: 0,
 //! #                     progress: 0.00,
 //! #                 },
 //! #                 Frame {
-//! #                     value: asset_server.load("idle_1.png"),
+//! #                     value: 1,
 //! #                     progress: 0.33,
 //! #                 },
 //! #                 Frame {
-//! #                     value: asset_server.load("idle_2.png"),
+//! #                     value: 2,
 //! #                     progress: 0.67,
 //! #                 },
 //! #             ],
@@ -266,22 +266,22 @@
 //! #             Animation::Run,
 //! #             vec![
 //! #                 Frame {
-//! #                     value: asset_server.load("run_0.png"),
+//! #                     value: 0,
 //! #                     progress: 0.00,
 //! #                 },
 //! #                 Frame {
-//! #                     value: asset_server.load("run_1.png"),
+//! #                     value: 1,
 //! #                     progress: 0.33,
 //! #                 },
 //! #                 Frame {
-//! #                     value: asset_server.load("run_2.png"),
+//! #                     value: 2,
 //! #                     progress: 0.67,
 //! #                 },
 //! #             ],
 //! #         ),
 //! #     ]),
 //! # )
-//! # .unwrap(),
+//! # .unwrap();
 //! animator.update_parameters(&|x| {
 //!     x.speed = 1.0;
 //! });
@@ -332,34 +332,34 @@ use std::hash::Hash;
 ///         Transition {
 ///             start_state: TransitionStartState::Node(Animation::Idle),
 ///             end_state: TransitionEndState::Node(Animation::Run),
-///             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
+///             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
 ///         },
 ///         Transition {
 ///             start_state: TransitionStartState::Node(Animation::Run),
 ///             end_state: TransitionEndState::Node(Animation::Idle),
-///             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
+///             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
 ///         },
 ///     ],
 ///     Params { speed: 0.0 },
 /// )
 /// .unwrap();
 ///
-/// let animator = Animator::new(
+/// let mut animator = Animator::new(
 ///     state_machine,
 ///     HashMap::from([
 ///         (
 ///             Animation::Idle,
 ///             vec![
 ///                 Frame {
-///                     value: asset_server.load("idle_0.png"),
+///                     value: 0,
 ///                     progress: 0.00,
 ///                 },
 ///                 Frame {
-///                     value: asset_server.load("idle_1.png"),
+///                     value: 1,
 ///                     progress: 0.33,
 ///                 },
 ///                 Frame {
-///                     value: asset_server.load("idle_2.png"),
+///                     value: 2,
 ///                     progress: 0.67,
 ///                 },
 ///             ],
@@ -368,22 +368,22 @@ use std::hash::Hash;
 ///             Animation::Run,
 ///             vec![
 ///                 Frame {
-///                     value: asset_server.load("run_0.png"),
+///                     value: 0,
 ///                     progress: 0.00,
 ///                 },
 ///                 Frame {
-///                     value: asset_server.load("run_1.png"),
+///                     value: 1,
 ///                     progress: 0.33,
 ///                 },
 ///                 Frame {
-///                     value: asset_server.load("run_2.png"),
+///                     value: 2,
 ///                     progress: 0.67,
 ///                 },
 ///             ],
 ///         ),
 ///     ]),
 /// )
-/// .unwrap(),
+/// .unwrap();
 ///
 /// animator.update_parameters(&|x| {
 ///    x.speed = 1.0;
@@ -438,22 +438,27 @@ where
         })
     }
 
+    /// Updates elapsed time
     pub fn update(&mut self, delta_time: f32) {
         self.state_machine.update(delta_time);
     }
 
+    /// Updates the parameters
     pub fn update_parameters(&mut self, update: &dyn Fn(&mut V)) {
         self.state_machine.update_parameters(update);
     }
 
+    /// Returns the current state
     pub fn state(&self) -> &CurrentState<K> {
         self.state_machine.state()
     }
 
+    /// Updates the parameters
     pub fn parameters(&self) -> &V {
         self.state_machine.parameters()
     }
 
+    /// Returns the current frame
     pub fn frame(&self) -> &F {
         let current_state = self.state_machine.state();
         let frames = match self.state_frames.get(&current_state.key) {
@@ -473,9 +478,12 @@ where
     }
 }
 
+/// An animation frame
 #[derive(Clone, Debug)]
 pub struct Frame<T> {
+    /// When the frame should be displayed [0.0, 1.0).
     pub progress: f32,
+    /// The frame value.
     pub value: T,
 }
 
@@ -533,12 +541,12 @@ pub enum AnimatorError<K> {
 ///         Transition {
 ///             start_state: TransitionStartState::Node(Animation::Idle),
 ///             end_state: TransitionEndState::Node(Animation::Run),
-///             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
+///             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
 ///         },
 ///         Transition {
 ///             start_state: TransitionStartState::Node(Animation::Run),
 ///             end_state: TransitionEndState::Node(Animation::Idle),
-///             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
+///             trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
 ///         },
 ///     ],
 ///     Params { speed: 0.0 },

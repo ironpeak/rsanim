@@ -1,5 +1,9 @@
+mod animator;
+mod animator_error;
+mod animator_new;
 mod current_state;
 mod example;
+mod example_sm;
 mod state_machine;
 mod state_machine_error;
 mod state_machine_new;
