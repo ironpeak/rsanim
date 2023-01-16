@@ -41,29 +41,71 @@ let mut state_machine = StateMachine::new(
         Transition {
             start_state: TransitionStartState::Node(Animation::Idle),
             end_state: TransitionEndState::Node(Animation::Run),
-            trigger: Trigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
+            trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
         },
         Transition {
             start_state: TransitionStartState::Node(Animation::Run),
             end_state: TransitionEndState::Node(Animation::Idle),
-            trigger: Trigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
+            trigger: TransitionTrigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
         },
     ],
     Params { speed: 0.0 },
 )
 .unwrap();
+
+let animator = Animator::new(
+    state_machine,
+    HashMap::from([
+        (
+            Animation::Idle,
+            vec![
+                Frame {
+                    value: 0,
+                    progress: 0.00,
+                },
+                Frame {
+                    value: 1,
+                    progress: 0.33,
+                },
+                Frame {
+                    value: 2,
+                    progress: 0.67,
+                },
+            ],
+        ),
+        (
+            Animation::Run,
+            vec![
+                Frame {
+                    value: 0,
+                    progress: 0.00,
+                },
+                Frame {
+                    value: 1,
+                    progress: 0.33,
+                },
+                Frame {
+                    value: 2,
+                    progress: 0.67,
+                },
+            ],
+        ),
+    ]),
+)
+.unwrap();
 ```
 
-Update the state machine as time passes:
+Update the state machine's elapsed time:
 
 ```rust
-state_machine.update(delta_time);
+let delta_time = 0.1;
+animator.update(delta_time);
 ```
 
-Update the parameters that are used to determine conditional transitions:
+Update the state machine's parameters that are used to determine conditional transitions:
 
 ```rust
-state_machine.update_parameters(&|x| {
+animator.update_parameters(&|x| {
     x.speed = 1.0;
 });
 ```
