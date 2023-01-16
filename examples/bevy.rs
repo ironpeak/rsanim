@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use rsanim::{
-    State, StateMachine, Transition, TransitionEndState, TransitionStartState, TransitionTrigger,
+    Animator, Frame, State, StateMachine, Transition, TransitionEndState, TransitionStartState,
+    TransitionTrigger,
 };
 
 use bevy::{
@@ -22,7 +23,7 @@ pub struct PlayerAnimParams {}
 
 #[derive(Component)]
 pub struct Player {
-    pub anim: StateMachine<PlayerAnimState, PlayerAnimParams>,
+    pub anim: Animator<PlayerAnimState, PlayerAnimParams, Handle<Image>>,
 }
 
 fn main() {
@@ -52,7 +53,7 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle {
         projection: OrthographicProjection {
             scaling_mode: ScalingMode::WindowSize,
@@ -62,63 +63,118 @@ fn setup(mut commands: Commands) {
         ..Default::default()
     });
 
+    let state_machine = StateMachine::new(
+        PlayerAnimState::Red,
+        HashMap::from([
+            (
+                PlayerAnimState::Red,
+                State {
+                    duration: 0.5,
+                    repeat: false,
+                },
+            ),
+            (
+                PlayerAnimState::Green,
+                State {
+                    duration: 0.5,
+                    repeat: false,
+                },
+            ),
+            (
+                PlayerAnimState::Blue,
+                State {
+                    duration: 0.5,
+                    repeat: false,
+                },
+            ),
+        ]),
+        vec![
+            Transition {
+                start_state: TransitionStartState::Node(PlayerAnimState::Red),
+                end_state: TransitionEndState::Node(PlayerAnimState::Green),
+                trigger: TransitionTrigger::End,
+            },
+            Transition {
+                start_state: TransitionStartState::Node(PlayerAnimState::Green),
+                end_state: TransitionEndState::Node(PlayerAnimState::Blue),
+                trigger: TransitionTrigger::End,
+            },
+            Transition {
+                start_state: TransitionStartState::Node(PlayerAnimState::Blue),
+                end_state: TransitionEndState::Node(PlayerAnimState::Red),
+                trigger: TransitionTrigger::End,
+            },
+        ],
+        PlayerAnimParams {},
+    )
+    .unwrap();
+
     commands.spawn((
         SpriteBundle {
             transform: Transform {
                 translation: Vec3::ZERO,
-                scale: Vec3::new(16.0, 16.0, 1.0),
+                scale: Vec3::new(1.0, 1.0, 1.0),
                 ..default()
             },
-            sprite: Sprite {
-                color: Color::RED,
-                ..default()
-            },
+            texture: asset_server.load("red_0.png"),
             ..default()
         },
         Player {
-            anim: StateMachine::new(
-                PlayerAnimState::Red,
+            anim: Animator::new(
+                state_machine,
                 HashMap::from([
                     (
                         PlayerAnimState::Red,
-                        State {
-                            duration: 1.0,
-                            repeat: false,
-                        },
+                        vec![
+                            Frame {
+                                value: asset_server.load("red_0.png"),
+                                progress: 0.00,
+                            },
+                            Frame {
+                                value: asset_server.load("red_1.png"),
+                                progress: 0.33,
+                            },
+                            Frame {
+                                value: asset_server.load("red_2.png"),
+                                progress: 0.67,
+                            },
+                        ],
                     ),
                     (
                         PlayerAnimState::Green,
-                        State {
-                            duration: 1.0,
-                            repeat: false,
-                        },
+                        vec![
+                            Frame {
+                                value: asset_server.load("green_0.png"),
+                                progress: 0.00,
+                            },
+                            Frame {
+                                value: asset_server.load("green_1.png"),
+                                progress: 0.33,
+                            },
+                            Frame {
+                                value: asset_server.load("green_2.png"),
+                                progress: 0.67,
+                            },
+                        ],
                     ),
                     (
                         PlayerAnimState::Blue,
-                        State {
-                            duration: 1.0,
-                            repeat: false,
-                        },
+                        vec![
+                            Frame {
+                                value: asset_server.load("blue_0.png"),
+                                progress: 0.00,
+                            },
+                            Frame {
+                                value: asset_server.load("blue_1.png"),
+                                progress: 0.33,
+                            },
+                            Frame {
+                                value: asset_server.load("blue_2.png"),
+                                progress: 0.67,
+                            },
+                        ],
                     ),
                 ]),
-                vec![
-                    Transition {
-                        start_state: TransitionStartState::Node(PlayerAnimState::Red),
-                        end_state: TransitionEndState::Node(PlayerAnimState::Green),
-                        trigger: TransitionTrigger::End,
-                    },
-                    Transition {
-                        start_state: TransitionStartState::Node(PlayerAnimState::Green),
-                        end_state: TransitionEndState::Node(PlayerAnimState::Blue),
-                        trigger: TransitionTrigger::End,
-                    },
-                    Transition {
-                        start_state: TransitionStartState::Node(PlayerAnimState::Blue),
-                        end_state: TransitionEndState::Node(PlayerAnimState::Red),
-                        trigger: TransitionTrigger::End,
-                    },
-                ],
-                PlayerAnimParams {},
             )
             .unwrap(),
         },
@@ -155,20 +211,10 @@ pub fn player_update(
     }
 }
 
-pub fn player_render(mut query: Query<(&Player, &mut Sprite)>) {
-    let (player, mut transform) = query.single_mut();
+pub fn player_render(mut query: Query<(&Player, &mut Handle<Image>)>) {
+    let (player, mut image) = query.single_mut();
 
-    let color_intensity = 1.0 - player.anim.state().progress() / 2.0;
+    let frame = player.anim.frame();
 
-    match player.anim.state().key {
-        PlayerAnimState::Red => {
-            transform.color = Color::rgb(color_intensity, 0.0, 0.0);
-        }
-        PlayerAnimState::Green => {
-            transform.color = Color::rgb(0.0, color_intensity, 0.0);
-        }
-        PlayerAnimState::Blue => {
-            transform.color = Color::rgb(0.0, 0.0, color_intensity);
-        }
-    }
+    *image = frame.clone();
 }

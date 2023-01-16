@@ -14,5 +14,9 @@ categories = ["game-development"]
 name = "bevy"
 path = "examples/bevy.rs"
 
+[[example]]
+name = "bevy_sm"
+path = "examples/bevy_sm.rs"
+
 [dev-dependencies]
 bevy = { version = "0.9.1" }

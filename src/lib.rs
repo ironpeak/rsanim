@@ -53,9 +53,50 @@
 //!     Params { speed: 0.0 },
 //! )
 //! .unwrap();
+//!
+//! let animator = Animator::new(
+//!     state_machine,
+//!     HashMap::from([
+//!         (
+//!             Animation::Idle,
+//!             vec![
+//!                 Frame {
+//!                     value: asset_server.load("idle_0.png"),
+//!                     progress: 0.00,
+//!                 },
+//!                 Frame {
+//!                     value: asset_server.load("idle_1.png"),
+//!                     progress: 0.33,
+//!                 },
+//!                 Frame {
+//!                     value: asset_server.load("idle_2.png"),
+//!                     progress: 0.67,
+//!                 },
+//!             ],
+//!         ),
+//!         (
+//!             Animation::Run,
+//!             vec![
+//!                 Frame {
+//!                     value: asset_server.load("run_0.png"),
+//!                     progress: 0.00,
+//!                 },
+//!                 Frame {
+//!                     value: asset_server.load("run_1.png"),
+//!                     progress: 0.33,
+//!                 },
+//!                 Frame {
+//!                     value: asset_server.load("run_2.png"),
+//!                     progress: 0.67,
+//!                 },
+//!             ],
+//!         ),
+//!     ]),
+//! )
+//! .unwrap(),
 //! ```
 //!
-//! Update the state machine as time passes:
+//! Update the state machine's elapsed time:
 //!
 //! ```
 //! # use rsanim::*;
@@ -105,11 +146,52 @@
 //! #     Params { speed: 0.0 },
 //! # )
 //! # .unwrap();
+//!
+//! # let animator = Animator::new(
+//! #     state_machine,
+//! #     HashMap::from([
+//! #         (
+//! #             Animation::Idle,
+//! #             vec![
+//! #                 Frame {
+//! #                     value: asset_server.load("idle_0.png"),
+//! #                     progress: 0.00,
+//! #                 },
+//! #                 Frame {
+//! #                     value: asset_server.load("idle_1.png"),
+//! #                     progress: 0.33,
+//! #                 },
+//! #                 Frame {
+//! #                     value: asset_server.load("idle_2.png"),
+//! #                     progress: 0.67,
+//! #                 },
+//! #             ],
+//! #         ),
+//! #         (
+//! #             Animation::Run,
+//! #             vec![
+//! #                 Frame {
+//! #                     value: asset_server.load("run_0.png"),
+//! #                     progress: 0.00,
+//! #                 },
+//! #                 Frame {
+//! #                     value: asset_server.load("run_1.png"),
+//! #                     progress: 0.33,
+//! #                 },
+//! #                 Frame {
+//! #                     value: asset_server.load("run_2.png"),
+//! #                     progress: 0.67,
+//! #                 },
+//! #             ],
+//! #         ),
+//! #     ]),
+//! # )
+//! # .unwrap(),
 //! # let delta_time = 0.1;
-//! state_machine.update(delta_time);
+//! animator.update(delta_time);
 //! ```
 //!
-//! Update the parameters that are used to determine conditional transitions:
+//! Update the state machine's parameters that are used to determine conditional transitions:
 //!
 //! ```
 //! # use rsanim::*;
@@ -159,7 +241,48 @@
 //! #     Params { speed: 0.0 },
 //! # )
 //! # .unwrap();
-//! state_machine.update_parameters(&|x| {
+//!
+//! # let animator = Animator::new(
+//! #     state_machine,
+//! #     HashMap::from([
+//! #         (
+//! #             Animation::Idle,
+//! #             vec![
+//! #                 Frame {
+//! #                     value: asset_server.load("idle_0.png"),
+//! #                     progress: 0.00,
+//! #                 },
+//! #                 Frame {
+//! #                     value: asset_server.load("idle_1.png"),
+//! #                     progress: 0.33,
+//! #                 },
+//! #                 Frame {
+//! #                     value: asset_server.load("idle_2.png"),
+//! #                     progress: 0.67,
+//! #                 },
+//! #             ],
+//! #         ),
+//! #         (
+//! #             Animation::Run,
+//! #             vec![
+//! #                 Frame {
+//! #                     value: asset_server.load("run_0.png"),
+//! #                     progress: 0.00,
+//! #                 },
+//! #                 Frame {
+//! #                     value: asset_server.load("run_1.png"),
+//! #                     progress: 0.33,
+//! #                 },
+//! #                 Frame {
+//! #                     value: asset_server.load("run_2.png"),
+//! #                     progress: 0.67,
+//! #                 },
+//! #             ],
+//! #         ),
+//! #     ]),
+//! # )
+//! # .unwrap(),
+//! animator.update_parameters(&|x| {
 //!     x.speed = 1.0;
 //! });
 //! ```
@@ -168,6 +291,106 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 
+/// The animator.
+///
+/// Used for translating the state machine into a sequence of frames.
+///
+/// ```
+/// # use rsanim::*;
+/// # use std::collections::HashMap;
+///
+/// #[derive(Clone, Eq, PartialEq, Hash, Debug)]
+/// enum Animation {
+///     Idle,
+///     Run,
+/// }
+///
+/// #[derive(Clone, Debug, PartialEq)]
+/// struct Params {
+///     pub speed: f32,
+/// }
+///
+/// let mut state_machine = StateMachine::new(
+///     Animation::Idle,
+///     HashMap::from([
+///         (
+///             Animation::Idle,
+///             State {
+///                 duration: 0.5,
+///                 repeat: true,
+///             },
+///         ),
+///         (
+///             Animation::Run,
+///             State {
+///                 duration: 1.0,
+///                 repeat: true,
+///             },
+///         ),
+///     ]),
+///     vec![
+///         Transition {
+///             start_state: TransitionStartState::Node(Animation::Idle),
+///             end_state: TransitionEndState::Node(Animation::Run),
+///             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed > 0.0)),
+///         },
+///         Transition {
+///             start_state: TransitionStartState::Node(Animation::Run),
+///             end_state: TransitionEndState::Node(Animation::Idle),
+///             trigger: Trigger::Condition(Box::new(|x: &Params| x.speed <= 0.0)),
+///         },
+///     ],
+///     Params { speed: 0.0 },
+/// )
+/// .unwrap();
+///
+/// let animator = Animator::new(
+///     state_machine,
+///     HashMap::from([
+///         (
+///             Animation::Idle,
+///             vec![
+///                 Frame {
+///                     value: asset_server.load("idle_0.png"),
+///                     progress: 0.00,
+///                 },
+///                 Frame {
+///                     value: asset_server.load("idle_1.png"),
+///                     progress: 0.33,
+///                 },
+///                 Frame {
+///                     value: asset_server.load("idle_2.png"),
+///                     progress: 0.67,
+///                 },
+///             ],
+///         ),
+///         (
+///             Animation::Run,
+///             vec![
+///                 Frame {
+///                     value: asset_server.load("run_0.png"),
+///                     progress: 0.00,
+///                 },
+///                 Frame {
+///                     value: asset_server.load("run_1.png"),
+///                     progress: 0.33,
+///                 },
+///                 Frame {
+///                     value: asset_server.load("run_2.png"),
+///                     progress: 0.67,
+///                 },
+///             ],
+///         ),
+///     ]),
+/// )
+/// .unwrap(),
+///
+/// animator.update_parameters(&|x| {
+///    x.speed = 1.0;
+/// });
+///
+/// animator.update(0.1);
+/// ```
 #[derive(Clone, Debug)]
 pub struct Animator<K, V, F> {
     state_machine: StateMachine<K, V>,
@@ -178,6 +401,7 @@ impl<K, V, F> Animator<K, V, F>
 where
     K: Clone + Eq + PartialEq + Hash,
 {
+    /// Creates a new [`Animator`]
     pub fn new(
         state_machine: StateMachine<K, V>,
         state_frames: HashMap<K, Vec<Frame<F>>>,
@@ -251,8 +475,8 @@ where
 
 #[derive(Clone, Debug)]
 pub struct Frame<T> {
-    progress: f32,
-    value: T,
+    pub progress: f32,
+    pub value: T,
 }
 
 /// A animator error
