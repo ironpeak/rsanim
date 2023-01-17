@@ -445,3 +445,42 @@ fn transition_end_jump_to_idle() {
         }
     );
 }
+
+#[test]
+fn transition_do_not_transition_to_current_state() {
+    let sm = create_sm(
+        "jump".to_string(),
+        Params {
+            speed: 1.0,
+            jump: true,
+        },
+    );
+
+    let mut animator = create_animator(sm);
+
+    animator.update_parameters(&|x| {
+        x.jump = true;
+    });
+
+    assert_eq!(
+        animator.state(),
+        &CurrentState {
+            key: "jump".to_string(),
+            duration: 0.25,
+            elapsed: 0.0,
+            repeat: false,
+        }
+    );
+
+    animator.update(0.2);
+
+    assert_eq!(
+        animator.state(),
+        &CurrentState {
+            key: "jump".to_string(),
+            duration: 0.25,
+            elapsed: 0.2,
+            repeat: false,
+        }
+    );
+}

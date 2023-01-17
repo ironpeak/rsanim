@@ -634,6 +634,9 @@ where
             let state_ended = self.current_state.elapsed >= self.current_state.duration;
             if let Some(transition) = self.transitions.iter().find(|x| {
                 (x.start_state == start_state || x.start_state == TransitionStartState::Any)
+                    && match &x.end_state {
+                        TransitionEndState::Node(node) => node != &self.current_state.key,
+                    }
                     && match &x.trigger {
                         TransitionTrigger::Condition(condition) => condition(&self.parameters),
                         TransitionTrigger::End => state_ended,
@@ -672,6 +675,9 @@ where
         // Only trigger conditional transitions since the time has not changed
         if let Some(transition) = self.transitions.iter().find(|x| {
             (x.start_state == start_state || x.start_state == TransitionStartState::Any)
+                && match &x.end_state {
+                    TransitionEndState::Node(node) => node != &self.current_state.key,
+                }
                 && match &x.trigger {
                     TransitionTrigger::Condition(condition) => condition(&self.parameters),
                     _ => false,
@@ -712,6 +718,9 @@ where
                     matches!(x.trigger, TransitionTrigger::End)
                         && (x.start_state == start_state
                             || x.start_state == TransitionStartState::Any)
+                        && match &x.end_state {
+                            TransitionEndState::Node(node) => node != &self.current_state.key,
+                        }
                 }) {
                     let TransitionEndState::Node(end_state_key) = &transition.end_state;
                     let end_state = match self.states.get(end_state_key) {
