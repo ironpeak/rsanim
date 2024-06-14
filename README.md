@@ -6,7 +6,7 @@ Example usage:
 
 ```rust
 use rsanim::*;
-use std::collections::HashMap;
+use bevy::collections::HashMap;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum Animation {
@@ -110,6 +110,6 @@ animator.update_parameters(&|x| {
 });
 ```
 
-## Bevy
+## Examples
 
 See `examples/bevy.rs`.

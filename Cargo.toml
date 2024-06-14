@@ -1,6 +1,6 @@
 [package]
 name = "rsanim"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "A basic state machine for managing sprite animations"
 repository = "https://github.com/ironpeak/rsanim"
@@ -10,13 +10,13 @@ readme = "README.md"
 keywords = ["gamedev", "animation", "bevy"]
 categories = ["game-development"]
 
-[[example]]
-name = "bevy"
-path = "examples/bevy.rs"
+# [[example]]
+# name = "bevy"
+# path = "examples/bevy.rs"
 
-[[example]]
-name = "bevy_sm"
-path = "examples/bevy_sm.rs"
+# [[example]]
+# name = "bevy_sm"
+# path = "examples/bevy_sm.rs"
 
-[dev-dependencies]
-bevy = { version = "0.9.1" }
+[dependencies]
+bevy = { version = "0.13" }
