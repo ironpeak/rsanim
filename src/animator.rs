@@ -1,51 +1,55 @@
 use bevy::prelude::*;
-use crate::{state_machine::CurrentState, StateMachine};
+use crate::{state_machine::{CurrentState, State}, StateMachine, Transition};
 
 #[derive(Component, Clone, Debug)]
-pub struct Animator<K, V, F> {
-    state_machine: StateMachine<K, V>,
-    state_frames: Vec<(K, Vec<Frame<F>>)>,
+pub struct Animator<TKey, TParams, TFrame> {
+    state_machine: StateMachine<TKey, TParams>,
+    state_frames: Vec<Vec<Frame<TFrame>>>,
 }
 
-impl<K, V, F> Animator<K, V, F>
+impl<TKey, TParams, TFrame> Animator<TKey, TParams, TFrame>
 where
-    K: Clone + Eq + PartialEq,
+    TKey: Clone + Eq + PartialEq,
 {
     /// Creates a new [`Animator`]
     pub fn new(
-        state_machine: StateMachine<K, V>,
-        state_frames: Vec<(K, Vec<Frame<F>>)>,
-    ) -> Result<Self, AnimatorError<K>> {
-        for (state, _) in &state_machine.states {
-            match state_frames.iter().find(|(k, _)| k == state).map(|(_, state)| state) {
-                Some(frames) => {
-                    if frames.is_empty() {
-                        return Err(AnimatorError::EmptyStateFrames(state.clone()));
-                    }
+        starting_state: TKey,
+        states: Vec<(TKey, State<TKey>)>,
+        transitions: Vec<Transition<TKey, TParams>>,
+        parameters: TParams,
+        state_frames: Vec<(TKey, Vec<Frame<TFrame>>)>,
+    ) -> Result<Self, AnimatorError<TKey>> {
+        todo!()
+        // for (state, _) in &state_machine.states {
+        //     match state_frames.iter().find(|(k, _)| k == state).map(|(_, state)| state) {
+        //         Some(frames) => {
+        //             if frames.is_empty() {
+        //                 return Err(AnimatorError::EmptyStateFrames(state.clone()));
+        //             }
 
-                    // make sure frames are sorted by progress
-                    let mut last_progress = -1.0;
-                    for frame in frames {
-                        if frame.progress < last_progress {
-                            return Err(AnimatorError::UnsortedStateFrames(state.clone()));
-                        }
-                        if frame.progress < 0.0 || frame.progress > 1.0 {
-                            return Err(AnimatorError::InvalidStateFrameProgress(
-                                state.clone(),
-                                frame.progress,
-                            ));
-                        }
-                        last_progress = frame.progress;
-                    }
-                }
-                None => return Err(AnimatorError::MissingStateFrames(state.clone())),
-            }
-        }
+        //             // make sure frames are sorted by progress
+        //             let mut last_progress = -1.0;
+        //             for frame in frames {
+        //                 if frame.progress < last_progress {
+        //                     return Err(AnimatorError::UnsortedStateFrames(state.clone()));
+        //                 }
+        //                 if frame.progress < 0.0 || frame.progress > 1.0 {
+        //                     return Err(AnimatorError::InvalidStateFrameProgress(
+        //                         state.clone(),
+        //                         frame.progress,
+        //                     ));
+        //                 }
+        //                 last_progress = frame.progress;
+        //             }
+        //         }
+        //         None => return Err(AnimatorError::MissingStateFrames(state.clone())),
+        //     }
+        // }
 
-        Ok(Self {
-            state_machine,
-            state_frames,
-        })
+        // Ok(Self {
+        //     state_machine,
+        //     state_frames,
+        // })
     }
 
     /// Updates elapsed time
@@ -54,22 +58,22 @@ where
     }
 
     /// Updates the parameters
-    pub fn update_parameters(&mut self, update: &dyn Fn(&mut V)) {
+    pub fn update_parameters(&mut self, update: &dyn Fn(&mut TParams)) {
         self.state_machine.update_parameters(update);
     }
 
     /// Returns the current state
-    pub fn state(&self) -> &CurrentState<K> {
+    pub fn state(&self) -> &CurrentState<TKey> {
         self.state_machine.state()
     }
 
     /// Updates the parameters
-    pub fn parameters(&self) -> &V {
+    pub fn parameters(&self) -> &TParams {
         self.state_machine.parameters()
     }
 
     /// Returns the current frame
-    pub fn frame(&self) -> &F {
+    pub fn frame(&self) -> &TFrame {
         let current_state = self.state_machine.state();
         let frames = match self.state_frames.iter().find(|(k, _)| k == &current_state.key).map(|(_, state)| state) {
             Some(frames) => frames,

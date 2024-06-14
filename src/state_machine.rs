@@ -1,55 +1,32 @@
 use std::fmt::{Debug, Formatter};
 
 #[derive(Clone, Debug)]
-pub struct StateMachine<K, V> {
-    pub(crate) current_state: CurrentState<K>,
-    pub(crate) states: Vec<(K, State)>,
-    pub(crate) transitions: Vec<Transition<K, V>>,
-    pub(crate) parameters: V,
+pub struct StateMachine<TKey, TParams> {
+    pub(crate) current_state: CurrentState<TKey>,
+    pub(crate) states: Vec<State<TKey>>,
+    pub(crate) transitions: Vec<Transition<TParams>>,
+    pub(crate) parameters: TParams,
 }
 
-impl<K, V> StateMachine<K, V>
+impl<TKey, TParams> StateMachine<TKey, TParams>
 where
-    K: Clone + Eq + PartialEq,
+    TKey: Copy + Eq + PartialEq,
 {
     /// Creates a new [`StateMachine`]
     pub fn new(
-        starting_state: K,
-        states: Vec<(K, State)>,
-        transitions: Vec<Transition<K, V>>,
-        parameters: V,
-    ) -> Result<Self, StateMachineError<K>> {
-        // validate that the starting state exists
-        let start = match states.iter().find(|(k, _)| k == &starting_state).map(|(_, state)| state) {
-            Some(state) => state,
-            None => {
-                return Err(StateMachineError::InvalidStartingState(starting_state));
-            }
-        };
-        // validate that the start and end states of each transition exist
-        for transition in &transitions {
-            match &transition.start_state {
-                TransitionStartState::Any => {}
-                TransitionStartState::Node(key) => {
-                    if !states.iter().any(|(k, _)| k == key) {
-                        return Err(StateMachineError::InvalidTransitionStartState(key.clone()));
-                    }
-                }
-            }
-            match &transition.end_state {
-                TransitionEndState::Node(key) => {
-                    if !states.iter().any(|(k, _)| k == key) {
-                        return Err(StateMachineError::InvalidTransitionEndState(key.clone()));
-                    }
-                }
-            }
-        }
+        start_state_index: usize,
+        states: Vec<State<TKey>>,
+        transitions: Vec<Transition<TParams>>,
+        parameters: TParams,
+    ) -> Result<Self, StateMachineError<TKey>> {
+        let start_state = &states[start_state_index];
         Ok(Self {
             current_state: CurrentState {
-                key: starting_state,
-                duration: start.duration,
+                index: start_state_index,
+                key: start_state.key,
+                duration: start_state.duration,
                 elapsed: 0.0,
-                repeat: start.repeat,
+                repeat: start_state.repeat,
             },
             states,
             transitions,
@@ -58,49 +35,47 @@ where
     }
 
     /// Returns the current state
-    pub fn state(&self) -> &CurrentState<K> {
+    pub fn state(&self) -> &CurrentState<TKey> {
         &self.current_state
     }
 
     /// Returns the parameters
-    pub fn parameters(&self) -> &V {
+    pub fn parameters(&self) -> &TParams {
         &self.parameters
     }
 
     fn transition(&mut self) {
-        let mut visited = Vec::new();
+        let mut visited = vec![false; self.states.len()];
 
         loop {
-            let start_state = TransitionStartState::Node(self.current_state.key.clone());
+            let start_state = TransitionStartState::Node(self.current_state.index);
             let state_ended = self.current_state.elapsed >= self.current_state.duration;
             if let Some(transition) = self.transitions.iter().find(|x| {
                 (x.start_state == start_state || x.start_state == TransitionStartState::Any)
                     && match &x.end_state {
-                        TransitionEndState::Node(node) => node != &self.current_state.key,
+                        TransitionEndState::Node(index) => index != &self.current_state.index,
                     }
                     && match &x.trigger {
                         TransitionTrigger::Condition(condition) => condition(&self.parameters),
                         TransitionTrigger::End => state_ended,
                     }
             }) {
-                let TransitionEndState::Node(end_state_key) = &transition.end_state;
+                let TransitionEndState::Node(end_state_index) = transition.end_state;
 
-                if visited.contains(end_state_key) {
+                if visited[end_state_index] {
                     // We have already visited this state, so we should stop
                     break;
                 }
 
-                let end_state = match self.states.iter().find(|(k, _)| k == end_state_key).map(|(_, state)| state) {
-                    Some(state) => state,
-                    None => unreachable!(),
-                };
+                let end_state = &self.states[end_state_index];
 
-                self.current_state.key = end_state_key.clone();
+                self.current_state.index = end_state_index;
+                self.current_state.key = end_state.key;
                 self.current_state.duration = end_state.duration;
                 self.current_state.elapsed = 0.0;
                 self.current_state.repeat = end_state.repeat;
 
-                visited.push(end_state_key.clone());
+                visited[end_state_index] = true;
             } else {
                 break;
             }
@@ -108,29 +83,27 @@ where
     }
 
     /// Updates the parameters
-    pub fn update_parameters(&mut self, update: &dyn Fn(&mut V)) {
+    pub fn update_parameters(&mut self, update: &dyn Fn(&mut TParams)) {
         update(&mut self.parameters);
 
-        let start_state = TransitionStartState::Node(self.current_state.key.clone());
+        let start_state = TransitionStartState::Node(self.current_state.index);
 
         // Only trigger conditional transitions since the time has not changed
         if let Some(transition) = self.transitions.iter().find(|x| {
             (x.start_state == start_state || x.start_state == TransitionStartState::Any)
                 && match &x.end_state {
-                    TransitionEndState::Node(node) => node != &self.current_state.key,
+                    TransitionEndState::Node(index) => index != &self.current_state.index,
                 }
                 && match &x.trigger {
                     TransitionTrigger::Condition(condition) => condition(&self.parameters),
                     _ => false,
                 }
         }) {
-            let TransitionEndState::Node(end_state_key) = &transition.end_state;
-            let end_state = match self.states.iter().find(|(k, _)| k == end_state_key).map(|(_, state)| state) {
-                Some(state) => state,
-                None => unreachable!(),
-            };
+            let TransitionEndState::Node(end_state_index) = transition.end_state;
+            let end_state = &self.states[end_state_index];
 
-            self.current_state.key = end_state_key.clone();
+            self.current_state.index = end_state_index;
+            self.current_state.key = end_state.key;
             self.current_state.duration = end_state.duration;
             self.current_state.elapsed = 0.0;
             self.current_state.repeat = end_state.repeat;
@@ -152,7 +125,7 @@ where
                     self.current_state.elapsed = self.current_state.duration;
                 }
 
-                let start_state = TransitionStartState::Node(self.current_state.key.clone());
+                let start_state = TransitionStartState::Node(self.current_state.index);
 
                 // Only trigger end transitions since the parameters have not changed
                 if let Some(transition) = self.transitions.iter().find(|x| {
@@ -160,16 +133,14 @@ where
                         && (x.start_state == start_state
                             || x.start_state == TransitionStartState::Any)
                         && match &x.end_state {
-                            TransitionEndState::Node(node) => node != &self.current_state.key,
+                            TransitionEndState::Node(index) => index == &self.current_state.index,
                         }
                 }) {
-                    let TransitionEndState::Node(end_state_key) = &transition.end_state;
-                    let end_state = match self.states.iter().find(|(k, _)| k == end_state_key).map(|(_, state)| state) {
-                        Some(state) => state,
-                        None => unreachable!(),
-                    };
+                    let TransitionEndState::Node(end_state_index) = transition.end_state;
+                    let end_state = &self.states[end_state_index];
 
-                    self.current_state.key = end_state_key.clone();
+                    self.current_state.index = end_state_index;
+                    self.current_state.key = end_state.key;
                     self.current_state.duration = end_state.duration;
                     self.current_state.elapsed = 0.0;
                     self.current_state.repeat = end_state.repeat;
@@ -184,18 +155,20 @@ where
 
 /// A state machine error
 #[derive(Clone, PartialEq, Debug)]
-pub enum StateMachineError<K> {
+pub enum StateMachineError<TKey> {
     /// The starting state does not exist
-    InvalidStartingState(K),
+    InvalidStartingState(TKey),
     /// The start state of a transition does not exist
-    InvalidTransitionStartState(K),
+    InvalidTransitionStartState(TKey),
     /// The end state of a transition does not exist
-    InvalidTransitionEndState(K),
+    InvalidTransitionEndState(TKey),
 }
 
 /// A state machine's current state
 #[derive(Clone, PartialEq, Debug)]
 pub struct CurrentState<K> {
+    /// The current state index
+    pub index: usize,
     /// The current state key
     pub key: K,
     /// The current state duration
@@ -220,7 +193,9 @@ impl<K> CurrentState<K> {
 
 /// A state
 #[derive(Clone, PartialEq, Debug)]
-pub struct State {
+pub struct State<K> {
+    /// The current state key
+    pub key: K,
     /// The state duration
     pub duration: f32,
     /// Whether the state repeats
@@ -229,29 +204,29 @@ pub struct State {
 
 /// A transition
 #[derive(Clone, Debug)]
-pub struct Transition<K, V> {
+pub struct Transition<TParams> {
     /// The start state
-    pub start_state: TransitionStartState<K>,
+    pub start_state: TransitionStartState,
     /// The end state
-    pub end_state: TransitionEndState<K>,
+    pub end_state: TransitionEndState,
     /// The trigger
-    pub trigger: TransitionTrigger<V>,
+    pub trigger: TransitionTrigger<TParams>,
 }
 
 /// A transition start state
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum TransitionStartState<K> {
+pub enum TransitionStartState {
     /// Any state
     Any,
     /// A specific state
-    Node(K),
+    Node(usize),
 }
 
 /// A transition end state
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum TransitionEndState<K> {
+pub enum TransitionEndState {
     /// A specific state
-    Node(K),
+    Node(usize),
 }
 
 /// A trigger
