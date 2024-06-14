@@ -1,7 +1,8 @@
 use std::fmt::{Formatter, Debug};
 
 use bevy::prelude::*;
-use crate::{state_machine::SMState, SMTransition, SMTransitionEndState, SMTransitionStartState, StateMachine};
+
+use crate::state_machine::{SMState, SMTransition, SMTransitionEndState, SMTransitionStartState, StateMachine};
 
 #[derive(Component, Clone, Debug)]
 pub struct Animator<TKey, TParams> {

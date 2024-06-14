@@ -3,11 +3,11 @@ use std::fmt::Debug;
 use crate::animator::TransitionTrigger;
 
 #[derive(Clone, Debug)]
-pub struct StateMachine<TKey, TParams> {
-    pub(crate) current_state: SMCurrentState<TKey>,
-    pub(crate) states: Vec<SMState<TKey>>,
-    pub(crate) transitions: Vec<SMTransition<TParams>>,
-    pub(crate) parameters: TParams,
+pub(crate) struct StateMachine<TKey, TParams> {
+    pub current_state: SMCurrentState<TKey>,
+    pub states: Vec<SMState<TKey>>,
+    pub transitions: Vec<SMTransition<TParams>>,
+    pub parameters: TParams,
 }
 
 impl<TKey, TParams> StateMachine<TKey, TParams>
@@ -157,7 +157,7 @@ where
 
 /// A state machine's current state
 #[derive(Clone, PartialEq, Debug)]
-pub struct SMCurrentState<K> {
+pub(crate) struct SMCurrentState<K> {
     /// The current state index
     pub index: usize,
     /// The current state key
@@ -175,16 +175,11 @@ impl<K> SMCurrentState<K> {
     pub fn progress(&self) -> f32 {
         self.elapsed / self.duration
     }
-
-    /// Returns whether the current state is finished
-    pub fn finished(&self) -> bool {
-        self.elapsed >= self.duration
-    }
 }
 
 /// A state
 #[derive(Clone, PartialEq, Debug)]
-pub struct SMState<K> {
+pub(crate) struct SMState<K> {
     /// The current state key
     pub key: K,
     /// The state duration
@@ -195,7 +190,7 @@ pub struct SMState<K> {
 
 /// A transition
 #[derive(Clone, Debug)]
-pub struct SMTransition<TParams> {
+pub(crate) struct SMTransition<TParams> {
     /// The start state
     pub start_state: SMTransitionStartState,
     /// The end state
@@ -206,7 +201,7 @@ pub struct SMTransition<TParams> {
 
 /// A transition start state
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum SMTransitionStartState {
+pub(crate) enum SMTransitionStartState {
     /// Any state
     Any,
     /// A specific state
@@ -215,7 +210,7 @@ pub enum SMTransitionStartState {
 
 /// A transition end state
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum SMTransitionEndState {
+pub(crate) enum SMTransitionEndState {
     /// A specific state
     Node(usize),
 }
