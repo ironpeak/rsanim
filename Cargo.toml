@@ -19,4 +19,7 @@ categories = ["game-development"]
 # path = "examples/bevy_sm.rs"
 
 [dependencies]
-bevy = { version = "0.13" }
+bevy_app = "0.13"
+bevy_ecs = "0.13"
+bevy_sprite = "0.13"
+bevy_time = "0.13"

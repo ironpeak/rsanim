@@ -1,4 +1,7 @@
-use bevy::prelude::*;
+use bevy_app::{App, Update};
+use bevy_ecs::{query::Changed, schedule::IntoSystemConfigs, system::{Query, Res}};
+use bevy_sprite::TextureAtlas;
+use bevy_time::Time;
 
 use crate::{animator::AnimatorParams, Animator};
 

@@ -1,6 +1,6 @@
 use std::fmt::{Formatter, Debug};
 
-use bevy::prelude::*;
+use bevy_ecs::component::Component;
 
 use crate::state_machine::{SMState, SMTransition, SMTransitionEndState, SMTransitionStartState, StateMachine};
 
