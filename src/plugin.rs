@@ -5,20 +5,14 @@ use bevy_time::Time;
 
 use crate::{animator::AnimatorParams, Animator};
 
-pub trait AnimatorAppExt<TKey, TParams>
-where
-    TKey: Copy + Eq + PartialEq + Send + Sync + 'static,
-    TParams: Clone + Send + Sync + 'static,
+pub trait AnimatorAppExt
 {
-    fn add_animator(&mut self) -> &mut Self;
+    fn add_animator<TKey: Copy + Eq + PartialEq + Send + Sync + 'static, TParams: Clone + Send + Sync + 'static>(&mut self) -> &mut Self ;
 }
 
-impl<TKey, TParams> AnimatorAppExt<TKey, TParams> for App
-where
-    TKey: Copy + Eq + PartialEq + Send + Sync + 'static,
-    TParams: Clone + Send + Sync + 'static,
+impl AnimatorAppExt for App
 {
-    fn add_animator(&mut self) -> &mut Self {
+    fn add_animator<TKey: Copy + Eq + PartialEq + Send + Sync + 'static, TParams: Clone + Send + Sync + 'static>(&mut self) -> &mut Self {
         self.add_systems(Update, (
             update_time::<TKey, TParams>, 
             update_params::<TKey, TParams>.after(update_time::<TKey, TParams>),
