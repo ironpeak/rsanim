@@ -17,7 +17,7 @@ where
     /// Creates a new [`Animator`]
     pub fn new(
         starting_state: TKey,
-        states: Vec<(TKey, State<TKey>)>,
+        states: Vec<(TKey, State)>,
         transitions: Vec<Transition<TKey, TParams>>,
         parameters: TParams,
         state_frames: Vec<(TKey, Vec<Frame>)>,
@@ -70,6 +70,22 @@ where
                 .position(|x| x.key == key)
                 .ok_or(AnimatorError::MissingStateFrames(key))?;
             new_state_frames[index] = frames;
+        }
+        for i in 0..states.len() {
+            let frames = &new_state_frames[i];
+            if frames.is_empty() {
+                return Err(AnimatorError::EmptyStateFrames(states[i].key));
+            }
+            for j in 1..frames.len() {
+                if frames[j - 1].progress >= frames[j].progress {
+                    return Err(AnimatorError::UnsortedStateFrames(states[i].key));
+                }
+            }
+            for frame in frames.iter() {
+                if frame.progress < 0.0 || frame.progress >= 1.0 {
+                    return Err(AnimatorError::InvalidStateFrameProgress(states[i].key, frame.progress));
+                }
+            }
         }
         Ok(Animator {
             state_machine: StateMachine::new(starting_state_index, states, transitions, parameters),
@@ -143,9 +159,7 @@ pub enum AnimatorError<K> {
 
 /// A state
 #[derive(Clone, PartialEq, Debug)]
-pub struct State<K> {
-    /// The current state key
-    pub key: K,
+pub struct State {
     /// The state duration
     pub duration: f32,
     /// Whether the state repeats
