@@ -1,10 +1,12 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
+
+use crate::animator::TransitionTrigger;
 
 #[derive(Clone, Debug)]
 pub struct StateMachine<TKey, TParams> {
-    pub(crate) current_state: CurrentState<TKey>,
-    pub(crate) states: Vec<State<TKey>>,
-    pub(crate) transitions: Vec<Transition<TParams>>,
+    pub(crate) current_state: SMCurrentState<TKey>,
+    pub(crate) states: Vec<SMState<TKey>>,
+    pub(crate) transitions: Vec<SMTransition<TParams>>,
     pub(crate) parameters: TParams,
 }
 
@@ -15,13 +17,13 @@ where
     /// Creates a new [`StateMachine`]
     pub fn new(
         start_state_index: usize,
-        states: Vec<State<TKey>>,
-        transitions: Vec<Transition<TParams>>,
+        states: Vec<SMState<TKey>>,
+        transitions: Vec<SMTransition<TParams>>,
         parameters: TParams,
-    ) -> Result<Self, StateMachineError<TKey>> {
+    ) -> Self {
         let start_state = &states[start_state_index];
-        Ok(Self {
-            current_state: CurrentState {
+        Self {
+            current_state: SMCurrentState {
                 index: start_state_index,
                 key: start_state.key,
                 duration: start_state.duration,
@@ -31,11 +33,11 @@ where
             states,
             transitions,
             parameters,
-        })
+        }
     }
 
     /// Returns the current state
-    pub fn state(&self) -> &CurrentState<TKey> {
+    pub fn state(&self) -> &SMCurrentState<TKey> {
         &self.current_state
     }
 
@@ -48,19 +50,19 @@ where
         let mut visited = vec![false; self.states.len()];
 
         loop {
-            let start_state = TransitionStartState::Node(self.current_state.index);
+            let start_state = SMTransitionStartState::Node(self.current_state.index);
             let state_ended = self.current_state.elapsed >= self.current_state.duration;
             if let Some(transition) = self.transitions.iter().find(|x| {
-                (x.start_state == start_state || x.start_state == TransitionStartState::Any)
+                (x.start_state == start_state || x.start_state == SMTransitionStartState::Any)
                     && match &x.end_state {
-                        TransitionEndState::Node(index) => index != &self.current_state.index,
+                        SMTransitionEndState::Node(index) => index != &self.current_state.index,
                     }
                     && match &x.trigger {
                         TransitionTrigger::Condition(condition) => condition(&self.parameters),
                         TransitionTrigger::End => state_ended,
                     }
             }) {
-                let TransitionEndState::Node(end_state_index) = transition.end_state;
+                let SMTransitionEndState::Node(end_state_index) = transition.end_state;
 
                 if visited[end_state_index] {
                     // We have already visited this state, so we should stop
@@ -86,20 +88,20 @@ where
     pub fn update_parameters(&mut self, update: &dyn Fn(&mut TParams)) {
         update(&mut self.parameters);
 
-        let start_state = TransitionStartState::Node(self.current_state.index);
+        let start_state = SMTransitionStartState::Node(self.current_state.index);
 
         // Only trigger conditional transitions since the time has not changed
         if let Some(transition) = self.transitions.iter().find(|x| {
-            (x.start_state == start_state || x.start_state == TransitionStartState::Any)
+            (x.start_state == start_state || x.start_state == SMTransitionStartState::Any)
                 && match &x.end_state {
-                    TransitionEndState::Node(index) => index != &self.current_state.index,
+                    SMTransitionEndState::Node(index) => index != &self.current_state.index,
                 }
                 && match &x.trigger {
                     TransitionTrigger::Condition(condition) => condition(&self.parameters),
                     _ => false,
                 }
         }) {
-            let TransitionEndState::Node(end_state_index) = transition.end_state;
+            let SMTransitionEndState::Node(end_state_index) = transition.end_state;
             let end_state = &self.states[end_state_index];
 
             self.current_state.index = end_state_index;
@@ -125,18 +127,18 @@ where
                     self.current_state.elapsed = self.current_state.duration;
                 }
 
-                let start_state = TransitionStartState::Node(self.current_state.index);
+                let start_state = SMTransitionStartState::Node(self.current_state.index);
 
                 // Only trigger end transitions since the parameters have not changed
                 if let Some(transition) = self.transitions.iter().find(|x| {
                     matches!(x.trigger, TransitionTrigger::End)
                         && (x.start_state == start_state
-                            || x.start_state == TransitionStartState::Any)
+                            || x.start_state == SMTransitionStartState::Any)
                         && match &x.end_state {
-                            TransitionEndState::Node(index) => index == &self.current_state.index,
+                            SMTransitionEndState::Node(index) => index == &self.current_state.index,
                         }
                 }) {
-                    let TransitionEndState::Node(end_state_index) = transition.end_state;
+                    let SMTransitionEndState::Node(end_state_index) = transition.end_state;
                     let end_state = &self.states[end_state_index];
 
                     self.current_state.index = end_state_index;
@@ -153,20 +155,9 @@ where
     }
 }
 
-/// A state machine error
-#[derive(Clone, PartialEq, Debug)]
-pub enum StateMachineError<TKey> {
-    /// The starting state does not exist
-    InvalidStartingState(TKey),
-    /// The start state of a transition does not exist
-    InvalidTransitionStartState(TKey),
-    /// The end state of a transition does not exist
-    InvalidTransitionEndState(TKey),
-}
-
 /// A state machine's current state
 #[derive(Clone, PartialEq, Debug)]
-pub struct CurrentState<K> {
+pub struct SMCurrentState<K> {
     /// The current state index
     pub index: usize,
     /// The current state key
@@ -179,7 +170,7 @@ pub struct CurrentState<K> {
     pub repeat: bool,
 }
 
-impl<K> CurrentState<K> {
+impl<K> SMCurrentState<K> {
     /// Returns the current state's progress [0.0, 1.0)
     pub fn progress(&self) -> f32 {
         self.elapsed / self.duration
@@ -193,7 +184,7 @@ impl<K> CurrentState<K> {
 
 /// A state
 #[derive(Clone, PartialEq, Debug)]
-pub struct State<K> {
+pub struct SMState<K> {
     /// The current state key
     pub key: K,
     /// The state duration
@@ -204,18 +195,18 @@ pub struct State<K> {
 
 /// A transition
 #[derive(Clone, Debug)]
-pub struct Transition<TParams> {
+pub struct SMTransition<TParams> {
     /// The start state
-    pub start_state: TransitionStartState,
+    pub start_state: SMTransitionStartState,
     /// The end state
-    pub end_state: TransitionEndState,
+    pub end_state: SMTransitionEndState,
     /// The trigger
     pub trigger: TransitionTrigger<TParams>,
 }
 
 /// A transition start state
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum TransitionStartState {
+pub enum SMTransitionStartState {
     /// Any state
     Any,
     /// A specific state
@@ -224,25 +215,7 @@ pub enum TransitionStartState {
 
 /// A transition end state
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub enum TransitionEndState {
+pub enum SMTransitionEndState {
     /// A specific state
     Node(usize),
-}
-
-/// A trigger
-#[derive(Clone)]
-pub enum TransitionTrigger<V> {
-    /// A condition
-    Condition(Box<fn(&V) -> bool>),
-    /// End
-    End,
-}
-
-impl<V> Debug for TransitionTrigger<V> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TransitionTrigger::Condition(_) => write!(f, "Condition"),
-            TransitionTrigger::End => write!(f, "End"),
-        }
-    }
 }

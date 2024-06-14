@@ -3,7 +3,7 @@ pub mod state_machine;
 pub mod plugin;
 
 pub mod prelude {
-    pub use super::{animator::{Animator, AnimatorError, Frame}, state_machine::{StateMachine, Transition, TransitionEndState, TransitionStartState, TransitionTrigger}};
+    pub use super::{animator::{Animator, AnimatorError, Frame}, state_machine::{StateMachine, SMTransition, SMTransitionEndState, SMTransitionStartState}};
 }
 
 use bevy::{app::PluginGroupBuilder, prelude::*};

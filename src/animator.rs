@@ -1,15 +1,17 @@
+use std::fmt::{Formatter, Debug};
+
 use bevy::prelude::*;
-use crate::{state_machine::{CurrentState, State}, StateMachine, Transition};
+use crate::{state_machine::SMState, SMTransition, SMTransitionEndState, SMTransitionStartState, StateMachine};
 
 #[derive(Component, Clone, Debug)]
-pub struct Animator<TKey, TParams, TFrame> {
+pub struct Animator<TKey, TParams> {
     state_machine: StateMachine<TKey, TParams>,
-    state_frames: Vec<Vec<Frame<TFrame>>>,
+    state_frames: Vec<Vec<Frame>>,
 }
 
-impl<TKey, TParams, TFrame> Animator<TKey, TParams, TFrame>
+impl<TKey, TParams> Animator<TKey, TParams>
 where
-    TKey: Clone + Eq + PartialEq,
+    TKey: Copy + Eq + PartialEq,
 {
     /// Creates a new [`Animator`]
     pub fn new(
@@ -17,39 +19,61 @@ where
         states: Vec<(TKey, State<TKey>)>,
         transitions: Vec<Transition<TKey, TParams>>,
         parameters: TParams,
-        state_frames: Vec<(TKey, Vec<Frame<TFrame>>)>,
+        state_frames: Vec<(TKey, Vec<Frame>)>,
     ) -> Result<Self, AnimatorError<TKey>> {
-        todo!()
-        // for (state, _) in &state_machine.states {
-        //     match state_frames.iter().find(|(k, _)| k == state).map(|(_, state)| state) {
-        //         Some(frames) => {
-        //             if frames.is_empty() {
-        //                 return Err(AnimatorError::EmptyStateFrames(state.clone()));
-        //             }
-
-        //             // make sure frames are sorted by progress
-        //             let mut last_progress = -1.0;
-        //             for frame in frames {
-        //                 if frame.progress < last_progress {
-        //                     return Err(AnimatorError::UnsortedStateFrames(state.clone()));
-        //                 }
-        //                 if frame.progress < 0.0 || frame.progress > 1.0 {
-        //                     return Err(AnimatorError::InvalidStateFrameProgress(
-        //                         state.clone(),
-        //                         frame.progress,
-        //                     ));
-        //                 }
-        //                 last_progress = frame.progress;
-        //             }
-        //         }
-        //         None => return Err(AnimatorError::MissingStateFrames(state.clone())),
-        //     }
-        // }
-
-        // Ok(Self {
-        //     state_machine,
-        //     state_frames,
-        // })
+        let states = states
+            .into_iter()
+            .map(|(key, state)| SMState {
+                key,
+                duration: state.duration,
+                repeat: state.repeat,
+            })
+            .collect::<Vec<_>>();
+        let starting_state_index = states
+            .iter()
+            .position(|x| x.key == starting_state)
+            .ok_or(AnimatorError::MissingStateFrames(starting_state))?;
+        let transitions = transitions
+            .into_iter()
+            .map(|transition| {
+                let start_state = match transition.start_state {
+                    TransitionStartState::Any => SMTransitionStartState::Any,
+                    TransitionStartState::Node(key) => {
+                        let index = states
+                            .iter()
+                            .position(|x| x.key == key)
+                            .ok_or(AnimatorError::MissingStateFrames(key))?;
+                        SMTransitionStartState::Node(index)
+                    }
+                };
+                let end_state = match transition.end_state {
+                    TransitionEndState::Node(key) => {
+                        let index = states
+                            .iter()
+                            .position(|x| x.key == key)
+                            .ok_or(AnimatorError::MissingStateFrames(key))?;
+                        SMTransitionEndState::Node(index)
+                    }
+                };
+                Ok(SMTransition {
+                    start_state,
+                    end_state,
+                    trigger: transition.trigger,
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut new_state_frames = vec![Vec::new(); states.len()];
+        for (key, frames) in state_frames.into_iter() {
+            let index = states
+                .iter()
+                .position(|x| x.key == key)
+                .ok_or(AnimatorError::MissingStateFrames(key))?;
+            new_state_frames[index] = frames;
+        }
+        Ok(Animator {
+            state_machine: StateMachine::new(starting_state_index, states, transitions, parameters),
+            state_frames: new_state_frames,
+        })
     }
 
     /// Updates elapsed time
@@ -63,8 +87,8 @@ where
     }
 
     /// Returns the current state
-    pub fn state(&self) -> &CurrentState<TKey> {
-        self.state_machine.state()
+    pub fn state(&self) -> TKey {
+        self.state_machine.state().key
     }
 
     /// Updates the parameters
@@ -73,32 +97,34 @@ where
     }
 
     /// Returns the current frame
-    pub fn frame(&self) -> &TFrame {
+    pub fn frame(&self) -> usize {
         let current_state = self.state_machine.state();
-        let frames = match self.state_frames.iter().find(|(k, _)| k == &current_state.key).map(|(_, state)| state) {
-            Some(frames) => frames,
-            None => unreachable!(),
-        };
+        let frames = &self.state_frames[current_state.index];
 
         let progress = current_state.progress();
         let mut frame = &frames[0];
         for f in frames {
             if f.progress > progress {
-                return &frame.value;
+                return frame.index;
             }
             frame = f;
         }
-        &frame.value
+        frame.index
     }
+}
+
+#[derive(Component, Clone, Debug)]
+pub struct AnimatorParams<TParams>{
+    pub parameters: TParams,
 }
 
 /// An animation frame
 #[derive(Clone, Debug)]
-pub struct Frame<T> {
+pub struct Frame {
     /// When the frame should be displayed [0.0, 1.0).
     pub progress: f32,
-    /// The frame value.
-    pub value: T,
+    /// The frame index.
+    pub index: usize,
 }
 
 /// A animator error
@@ -112,4 +138,60 @@ pub enum AnimatorError<K> {
     UnsortedStateFrames(K),
     /// The state frame progress is invalid.
     InvalidStateFrameProgress(K, f32),
+}
+
+/// A state
+#[derive(Clone, PartialEq, Debug)]
+pub struct State<K> {
+    /// The current state key
+    pub key: K,
+    /// The state duration
+    pub duration: f32,
+    /// Whether the state repeats
+    pub repeat: bool,
+}
+
+/// A transition
+#[derive(Clone, Debug)]
+pub struct Transition<TKey, TParams> {
+    /// The start state
+    pub start_state: TransitionStartState<TKey>,
+    /// The end state
+    pub end_state: TransitionEndState<TKey>,
+    /// The trigger
+    pub trigger: TransitionTrigger<TParams>,
+}
+
+/// A transition start state
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub enum TransitionStartState<TKey> {
+    /// Any state
+    Any,
+    /// A specific state
+    Node(TKey),
+}
+
+/// A transition end state
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub enum TransitionEndState<TKey> {
+    /// A specific state
+    Node(TKey),
+}
+
+/// A trigger
+#[derive(Clone)]
+pub enum TransitionTrigger<V> {
+    /// A condition
+    Condition(Box<fn(&V) -> bool>),
+    /// End
+    End,
+}
+
+impl<V> Debug for TransitionTrigger<V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransitionTrigger::Condition(_) => write!(f, "Condition"),
+            TransitionTrigger::End => write!(f, "End"),
+        }
+    }
 }
