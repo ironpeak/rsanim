@@ -214,3 +214,93 @@ pub(crate) enum SMTransitionEndState {
     /// A specific state
     Node(usize),
 }
+
+#[cfg(test)]
+pub mod tests {
+    use crate::state_machine::{SMCurrentState, StateMachine};
+
+    use super::SMState;
+
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    enum Animation {
+        Idle,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Params {
+        pub speed: f32,
+        pub jump: bool,
+    }
+
+    #[test]
+    fn sm_new() {
+        StateMachine::new(
+            0,
+            vec![SMState {
+                key: Animation::Idle,
+                duration: 0.5,
+                repeat: true,
+            }],
+            vec![],
+            Params {
+                speed: 0.0,
+                jump: false,
+            },
+        );
+    }
+
+    #[test]
+    fn sm_current_state_progress_0() {
+        let current_state = SMCurrentState {
+            index: 0,
+            key: "idle".to_string(),
+            duration: 0.5,
+            elapsed: 0.0,
+            repeat: true,
+        };
+
+        assert_eq!(current_state.progress(), 0.0);
+    }
+
+    #[test]
+    fn sm_current_state_progress_0_5() {
+        let current_state = SMCurrentState {
+            index: 0,
+            key: "idle".to_string(),
+            duration: 0.5,
+            elapsed: 0.25,
+            repeat: true,
+        };
+
+        assert_eq!(current_state.progress(), 0.5);
+    }
+
+    #[test]
+    fn sm_current_state_progress_1() {
+        let current_state = SMCurrentState {
+            index: 0,
+            key: "idle".to_string(),
+            duration: 0.5,
+            elapsed: 0.5,
+            repeat: true,
+        };
+
+        assert_eq!(current_state.progress(), 1.0);
+    }
+
+    #[test]
+    fn sm_current_state_debug() {
+        let current_state = SMCurrentState {
+            index: 0,
+            key: "idle".to_string(),
+            duration: 0.5,
+            elapsed: 0.0,
+            repeat: true,
+        };
+
+        assert_eq!(
+            format!("{:?}", current_state),
+            "SMCurrentState { index: 0, key: \"idle\", duration: 0.5, elapsed: 0.0, repeat: true }"
+        );
+    }
+}

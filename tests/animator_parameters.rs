@@ -1,85 +1,87 @@
-// use rsanim::prelude::*;
+use rsanim::prelude::*;
 
-// #[derive(Clone, Debug, PartialEq)]
-// struct Params {
-//     pub speed: f32,
-//     pub jump: bool,
-// }
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum Animation {
+    Idle,
+}
 
-// fn create_animator(starting_state: String, params: Params) -> Animator<String, Params, u8> {
-//     Animator::<String, Params, u8>::new(
-//         StateMachine::new(
-//             starting_state,
-//             HashMap::from([(
-//                 "idle".to_string(),
-//                 State {
-//                     duration: 0.5,
-//                     repeat: true,
-//                 },
-//             )]),
-//             vec![],
-//             params,
-//         )
-//         .unwrap(),
-//         HashMap::from([(
-//             "idle".to_string(),
-//             vec![
-//                 Frame {
-//                     progress: 0.00,
-//                     value: 0,
-//                 },
-//                 Frame {
-//                     progress: 0.33,
-//                     value: 1,
-//                 },
-//                 Frame {
-//                     progress: 0.67,
-//                     value: 2,
-//                 },
-//             ],
-//         )]),
-//     )
-//     .unwrap()
-// }
+#[derive(Clone, Debug, PartialEq)]
+struct Params {
+    pub speed: f32,
+    pub jump: bool,
+}
 
-// #[test]
-// fn animator_parameters() {
-//     let animator = create_animator(
-//         "idle".to_string(),
-//         Params {
-//             speed: 0.0,
-//             jump: false,
-//         },
-//     );
+fn create_animator(starting_state: Animation, params: Params) -> Animator<Animation, Params> {
+    Animator::new(
+            starting_state,
+            vec![(
+                Animation::Idle,
+                State {
+                    duration: 0.5,
+                    repeat: true,
+                },
+            )],
+            vec![],
+            params,
+        vec![(
+            Animation::Idle,
+            vec![
+                Frame {
+                    progress: 0.00,
+                    index: 0,
+                },
+                Frame {
+                    progress: 0.33,
+                    index: 1,
+                },
+                Frame {
+                    progress: 0.67,
+                    index: 2,
+                },
+            ],
+        )],
+    )
+    .unwrap()
+}
 
-//     assert_eq!(
-//         animator.parameters(),
-//         &Params {
-//             speed: 0.0,
-//             jump: false,
-//         }
-//     );
-// }
+#[test]
+fn animator_parameters() {
+    let animator = create_animator(
+        Animation::Idle,
+        Params {
+            speed: 0.0,
+            jump: false,
+        },
+    );
 
-// #[test]
-// fn animator_update_parameters() {
-//     let mut animator = create_animator(
-//         "idle".to_string(),
-//         Params {
-//             speed: 0.0,
-//             jump: false,
-//         },
-//     );
+    assert_eq!(
+        animator.parameters(),
+        &Params {
+            speed: 0.0,
+            jump: false,
+        }
+    );
+}
 
-//     animator.update_parameters(&|x| {
-//         x.speed = 1.0;
-//     });
+#[test]
+fn animator_update_parameters() {
+    let mut animator = create_animator(
+        Animation::Idle,
+        Params {
+            speed: 0.0,
+            jump: false,
+        },
+    );
 
-//     assert_eq!(
-//         animator.parameters(),
-//         &Params {
-//             speed: 1.0,
-//             jump: false,
-//         }
-//     );
-// }
+    animator.update_parameters(&|x| {
+        x.speed = 1.0;
+    });
+
+    assert_eq!(
+        animator.parameters(),
+        &Params {
+            speed: 1.0,
+            jump: false,
+        }
+    );
+}
