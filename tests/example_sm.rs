@@ -1,8 +1,4 @@
-use rsanim::{
-    CurrentState, State, StateMachine, Transition, TransitionEndState, TransitionStartState,
-    TransitionTrigger,
-};
-use std::collections::HashMap;
+use rsanim::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Params {

@@ -1,9 +1,4 @@
-use std::collections::HashMap;
-
-use rsanim::{
-    Animator, CurrentState, Frame, State, StateMachine, Transition, TransitionEndState,
-    TransitionStartState, TransitionTrigger,
-};
+use rsanim::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Params {

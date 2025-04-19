@@ -1,4 +1,4 @@
-use rsanim::CurrentState;
+use rsanim::prelude::*;
 
 #[test]
 fn progress_0() {

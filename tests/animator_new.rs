@@ -1,5 +1,4 @@
-use rsanim::{Animator, AnimatorError, Frame, State, StateMachine};
-use std::collections::HashMap;
+use rsanim::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Params {

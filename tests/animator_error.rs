@@ -1,4 +1,4 @@
-use rsanim::AnimatorError;
+use rsanim::prelude::*;
 
 #[test]
 fn clone() {

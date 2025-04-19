@@ -6,8 +6,7 @@
 //! Example usage:
 //!
 //! ```
-//! use rsanim::*;
-//! use std::collections::HashMap;
+//! use rsanim::prelude::*;
 //!
 //! #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 //! enum Animation {
@@ -99,8 +98,7 @@
 //! Update the state machine's elapsed time:
 //!
 //! ```
-//! # use rsanim::*;
-//! # use std::collections::HashMap;
+//! # use rsanim::prelude::*;
 //!
 //! # #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 //! # enum Animation {
@@ -194,8 +192,7 @@
 //! Update the state machine's parameters that are used to determine conditional transitions:
 //!
 //! ```
-//! # use rsanim::*;
-//! # use std::collections::HashMap;
+//! # use rsanim::prelude::*;
 //!
 //! # #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 //! # enum Animation {
@@ -287,17 +284,45 @@
 //! });
 //! ```
 
-use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
-use std::hash::Hash;
+use std::hash::{BuildHasherDefault, Hash};
+
+use ahash::AHasher;
+
+/// A [`HashMap`][hashbrown::HashMap] implementing aHash, a high
+/// speed keyed hashing algorithm intended for use in in-memory hashmaps.
+///
+/// aHash is designed for performance and is NOT cryptographically secure.
+///
+/// Within the same execution of the program iteration order of different
+/// `HashMap`s only depends on the order of insertions and deletions,
+/// but it will not be stable between multiple executions of the program.
+pub type HashMap<K, V> = hashbrown::HashMap<K, V, BuildHasherDefault<AHasher>>;
+
+/// A [`HashSet`][hashbrown::HashSet] implementing aHash, a high
+/// speed keyed hashing algorithm intended for use in in-memory hashmaps.
+///
+/// aHash is designed for performance and is NOT cryptographically secure.
+///
+/// Within the same execution of the program iteration order of different
+/// `HashSet`s only depends on the order of insertions and deletions,
+/// but it will not be stable between multiple executions of the program.
+pub type HashSet<K> = hashbrown::HashSet<K, BuildHasherDefault<AHasher>>;
+
+#[doc(hidden)]
+pub mod prelude {
+    pub use super::{
+        Animator, AnimatorError, CurrentState, Frame, HashMap, HashSet, State, StateMachine,
+        StateMachineError, Transition, TransitionEndState, TransitionStartState, TransitionTrigger,
+    };
+}
 
 /// The animator.
 ///
 /// Used for translating the state machine into a sequence of frames.
 ///
 /// ```
-/// # use rsanim::*;
-/// # use std::collections::HashMap;
+/// # use rsanim::prelude::*;
 ///
 /// #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 /// enum Animation {
@@ -505,8 +530,7 @@ pub enum AnimatorError<K> {
 /// Use this to track an entity's animation state.
 ///
 /// ```
-/// # use rsanim::*;
-/// # use std::collections::HashMap;
+/// # use rsanim::prelude::*;
 ///
 /// #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 /// enum Animation {

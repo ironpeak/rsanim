@@ -1,14 +1,6 @@
-use std::collections::HashMap;
+use rsanim::prelude::*;
 
-use rsanim::{
-    State, StateMachine, Transition, TransitionEndState, TransitionStartState, TransitionTrigger,
-};
-
-use bevy::{
-    prelude::*,
-    render::camera::{ScalingMode, WindowOrigin},
-    window::{self, PresentMode},
-};
+use bevy::{prelude::*, render::camera::ScalingMode, window::PresentMode};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PlayerAnimState {
@@ -28,51 +20,41 @@ pub struct Player {
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
-                title: "rsanim".to_string(),
-                present_mode: PresentMode::AutoVsync,
-                mode: WindowMode::Windowed,
-                width: 800.0,
-                height: 640.0,
+            primary_window: Some(Window {
+                present_mode: PresentMode::Immediate,
+                title: "Island Crawlers".to_string(),
+                resizable: false,
                 ..default()
-            },
+            }),
             ..default()
         }))
         // setup
-        .add_startup_system(setup)
+        .add_systems(Startup, setup)
         // player
-        .add_system(player_update)
-        .add_system_set(
-            SystemSet::new()
-                .with_system(player_render)
-                .after(player_update),
-        )
+        .add_systems(Update, player_update)
+        .add_systems(Update, player_render.after(player_update))
         .insert_resource(ClearColor(Color::BLACK))
-        .add_system(window::close_on_esc)
         .run();
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle {
-        projection: OrthographicProjection {
+    commands.spawn((
+        Camera2d,
+        OrthographicProjection {
             scaling_mode: ScalingMode::WindowSize,
-            window_origin: WindowOrigin::Center,
-            ..Default::default()
+            viewport_origin: Vec2::new(0.5, 0.5),
+            ..OrthographicProjection::default_2d()
         },
-        ..Default::default()
-    });
+    ));
 
     commands.spawn((
-        SpriteBundle {
-            transform: Transform {
-                translation: Vec3::ZERO,
-                scale: Vec3::new(16.0, 16.0, 1.0),
-                ..default()
-            },
-            sprite: Sprite {
-                color: Color::RED,
-                ..default()
-            },
+        Transform {
+            translation: Vec3::ZERO,
+            scale: Vec3::new(16.0, 16.0, 1.0),
+            ..default()
+        },
+        Sprite {
+            color: Color::srgb(1.0, 0.0, 0.0),
             ..default()
         },
         Player {
@@ -81,21 +63,21 @@ fn setup(mut commands: Commands) {
                 HashMap::from([
                     (
                         PlayerAnimState::Red,
-                        State {
+                        rsanim::State {
                             duration: 1.0,
                             repeat: false,
                         },
                     ),
                     (
                         PlayerAnimState::Green,
-                        State {
+                        rsanim::State {
                             duration: 1.0,
                             repeat: false,
                         },
                     ),
                     (
                         PlayerAnimState::Blue,
-                        State {
+                        rsanim::State {
                             duration: 1.0,
                             repeat: false,
                         },
@@ -127,31 +109,31 @@ fn setup(mut commands: Commands) {
 
 pub fn player_update(
     time: Res<Time>,
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Player, &mut Transform)>,
 ) {
     let (mut player, mut transform) = query.single_mut();
 
-    player.anim.update(time.delta_seconds());
+    player.anim.update(time.delta_secs());
 
     let mut direction = Vec3::ZERO;
 
-    if keyboard_input.pressed(KeyCode::W) {
+    if keyboard_input.pressed(KeyCode::KeyW) {
         direction.y += 1.0;
     }
-    if keyboard_input.pressed(KeyCode::S) {
+    if keyboard_input.pressed(KeyCode::KeyS) {
         direction.y -= 1.0;
     }
-    if keyboard_input.pressed(KeyCode::A) {
+    if keyboard_input.pressed(KeyCode::KeyA) {
         direction.x -= 1.0;
     }
-    if keyboard_input.pressed(KeyCode::D) {
+    if keyboard_input.pressed(KeyCode::KeyD) {
         direction.x += 1.0;
     }
 
     if direction.length_squared() > 0.0 {
         transform.translation =
-            transform.translation + direction.normalize() * 128.0 * time.delta_seconds();
+            transform.translation + direction.normalize() * 128.0 * time.delta_secs();
     }
 }
 
@@ -162,13 +144,13 @@ pub fn player_render(mut query: Query<(&Player, &mut Sprite)>) {
 
     match player.anim.state().key {
         PlayerAnimState::Red => {
-            sprite.color = Color::rgb(color_intensity, 0.0, 0.0);
+            sprite.color = Color::srgb(color_intensity, 0.0, 0.0);
         }
         PlayerAnimState::Green => {
-            sprite.color = Color::rgb(0.0, color_intensity, 0.0);
+            sprite.color = Color::srgb(0.0, color_intensity, 0.0);
         }
         PlayerAnimState::Blue => {
-            sprite.color = Color::rgb(0.0, 0.0, color_intensity);
+            sprite.color = Color::srgb(0.0, 0.0, color_intensity);
         }
     }
 }

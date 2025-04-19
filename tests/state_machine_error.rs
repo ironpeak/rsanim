@@ -1,4 +1,4 @@
-use rsanim::StateMachineError;
+use rsanim::prelude::*;
 
 #[test]
 fn clone() {

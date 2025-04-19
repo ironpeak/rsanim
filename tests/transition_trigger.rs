@@ -1,4 +1,4 @@
-use rsanim::TransitionTrigger;
+use rsanim::prelude::*;
 
 #[test]
 fn clone() {

@@ -1,5 +1,4 @@
-use rsanim::{State, StateMachine, StateMachineError, Transition, TransitionTrigger};
-use std::collections::HashMap;
+use rsanim::prelude::*;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum Animation {

@@ -5,8 +5,7 @@ A basic state machine for managing sprite animations.
 Example usage:
 
 ```rust
-use rsanim::*;
-use std::collections::HashMap;
+use rsanim::prelude::*;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum Animation {

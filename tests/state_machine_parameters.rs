@@ -1,5 +1,4 @@
-use rsanim::{State, StateMachine};
-use std::collections::HashMap;
+use rsanim::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Params {

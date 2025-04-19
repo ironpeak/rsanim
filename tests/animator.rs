@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use rsanim::{Animator, Frame, State, StateMachine};
+use rsanim::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Params {
@@ -89,5 +87,8 @@ fn debug() {
     )
     .unwrap();
 
-    assert_eq!(format!("{:?}", animator), "Animator { state_machine: StateMachine { current_state: CurrentState { key: \"idle\", duration: 0.5, elapsed: 0.0, repeat: true }, states: {\"idle\": State { duration: 0.5, repeat: true }}, transitions: [], parameters: Params { speed: 1.0, jump: false } }, state_frames: {\"idle\": [Frame { progress: 0.0, value: 0 }, Frame { progress: 0.33, value: 1 }, Frame { progress: 0.67, value: 2 }]} }");
+    assert_eq!(
+        format!("{:?}", animator),
+        "Animator { state_machine: StateMachine { current_state: CurrentState { key: \"idle\", duration: 0.5, elapsed: 0.0, repeat: true }, states: {\"idle\": State { duration: 0.5, repeat: true }}, transitions: [], parameters: Params { speed: 1.0, jump: false } }, state_frames: {\"idle\": [Frame { progress: 0.0, value: 0 }, Frame { progress: 0.33, value: 1 }, Frame { progress: 0.67, value: 2 }]} }"
+    );
 }

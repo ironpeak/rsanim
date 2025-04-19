@@ -1,4 +1,4 @@
-use rsanim::TransitionEndState;
+use rsanim::prelude::*;
 
 #[test]
 fn clone() {
