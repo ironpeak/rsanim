@@ -19,8 +19,7 @@ name = "bevy_sm"
 path = "examples/bevy_sm.rs"
 
 [dependencies]
-ahash = "0.8"
-hashbrown = "0.14"
+bevy_platform = { version = "0.16" }
 
 [dev-dependencies]
-bevy = { version = "0.15.3" }
+bevy = { version = "0.16" }

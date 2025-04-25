@@ -40,11 +40,11 @@ fn main() {
 fn setup(mut commands: Commands) {
     commands.spawn((
         Camera2d,
-        OrthographicProjection {
+        Projection::Orthographic(OrthographicProjection {
             scaling_mode: ScalingMode::WindowSize,
             viewport_origin: Vec2::new(0.5, 0.5),
             ..OrthographicProjection::default_2d()
-        },
+        }),
     ));
 
     commands.spawn((
@@ -112,7 +112,9 @@ pub fn player_update(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Player, &mut Transform)>,
 ) {
-    let (mut player, mut transform) = query.single_mut();
+    let Ok((mut player, mut transform)) = query.single_mut() else {
+        return;
+    };
 
     player.anim.update(time.delta_secs());
 
@@ -138,7 +140,9 @@ pub fn player_update(
 }
 
 pub fn player_render(mut query: Query<(&Player, &mut Sprite)>) {
-    let (player, mut sprite) = query.single_mut();
+    let Ok((player, mut sprite)) = query.single_mut() else {
+        return;
+    };
 
     let color_intensity = 1.0 - player.anim.state().progress() / 2.0;
 
