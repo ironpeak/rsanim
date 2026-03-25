@@ -1,6 +1,6 @@
 use rsanim::prelude::*;
 
-use bevy::{prelude::*, render::camera::ScalingMode, window::PresentMode};
+use bevy::{camera::ScalingMode, prelude::*, window::PresentMode};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PlayerAnimState {
